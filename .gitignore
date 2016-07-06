@@ -1,6 +1,7 @@
 # Build
-/bin
-/lib
+/server
+/client
+/public/bundle.js
 
 # Node
 node_modules
