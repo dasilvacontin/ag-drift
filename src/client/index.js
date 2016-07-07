@@ -29,9 +29,10 @@ const SMALL_THRUSTER_WIDTH = 0.5
 const SMALL_THRUSTER_LONG = 0.4
 const cars = []
 function addCar () {
+  const i = cars.length
   const body = new p2.Body({
     mass: 5,
-    position: [15, 12 + Math.random() * 5],
+    position: [7 + (i % 2 !== 0 ? 5 : 0), 15 + 3 * i],
     fixedRotation: true
   })
 
@@ -182,8 +183,8 @@ function loop () {
       const { body, sprite } = car
       const { fire, fireLeft, fireRight } = sprite
       const gamepad = gamepads[i]
-      const nowLeft = padIsKeyDown(gamepad, kbd.LEFT_ARROW)
-      const nowRight = padIsKeyDown(gamepad, kbd.RIGHT_ARROW)
+      let nowLeft = padIsKeyDown(gamepad, kbd.LEFT_ARROW)
+      let nowRight = padIsKeyDown(gamepad, kbd.RIGHT_ARROW)
 
       const oldGamepad = oldGamepads[i]
       const oldLeft = oldGamepad && padIsKeyDown(oldGamepad, kbd.LEFT_ARROW)
