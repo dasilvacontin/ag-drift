@@ -1,3 +1,5 @@
+![early screenshot](screenshot.png)
+
 ag-drift
 ========
 

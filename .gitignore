@@ -9,3 +9,6 @@ npm-debug.log
 
 # Coverage
 coverage
+
+# Other
+.DS_Store

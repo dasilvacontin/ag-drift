@@ -9,6 +9,7 @@
   ],
   "extends": ["standard"],
   "rules": {
+	"new-cap": 0,
     "generator-star-spacing": 0,
     "babel/generator-star-spacing": [2, "before"],
     "flow-vars/define-flow-type": 2,
