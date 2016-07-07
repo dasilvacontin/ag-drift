@@ -152,6 +152,7 @@ let oldGamepads: Array<?Object> = []
 
 const timeStep = 1 / 60
 const force = 300
+
 function padIsKeyDown (gamepad, key) {
   if (gamepad == null) return false
   const { buttons } = gamepad
@@ -170,6 +171,7 @@ function padIsKeyDown (gamepad, key) {
 
 global.FIRE_HIGH = 0x007AFF
 global.FIRE_LOW = 0x00FFD4
+let playerOldLeft, playerOldRight
 
 const meter = new FPSMeter()
 function loop () {
@@ -187,11 +189,24 @@ function loop () {
       let nowRight = padIsKeyDown(gamepad, kbd.RIGHT_ARROW)
 
       const oldGamepad = oldGamepads[i]
-      const oldLeft = oldGamepad && padIsKeyDown(oldGamepad, kbd.LEFT_ARROW)
-      const oldRight = oldGamepad && padIsKeyDown(oldGamepad, kbd.RIGHT_ARROW)
+      let oldLeft = oldGamepad && padIsKeyDown(oldGamepad, kbd.LEFT_ARROW)
+      let oldRight = oldGamepad && padIsKeyDown(oldGamepad, kbd.RIGHT_ARROW)
+
+      if (i === 0) {
+        nowLeft = nowLeft || kbd.isKeyDown('a')
+        nowRight = nowRight || kbd.isKeyDown('d')
+        oldLeft = oldLeft || playerOldLeft
+        oldRight = oldRight || playerOldRight
+      }
+
       if (nowLeft && !oldLeft) body.angle += -Math.PI / 2
       if (nowRight && !oldRight) body.angle += Math.PI / 2
       body.applyForceLocal([0, -force]) // thrust
+
+      if (i === 0) {
+        playerOldLeft = nowLeft
+        playerOldRight = nowRight
+      }
 
       // thruster animation
       const thrusters = [fire, fireLeft, fireRight]
@@ -203,11 +218,13 @@ function loop () {
           : global.FIRE_LOW
       })
 
-      const leftThrusterOn = padIsKeyDown(gamepad, 'q')
+      let leftThrusterOn = padIsKeyDown(gamepad, 'q')
+      if (i === 0) leftThrusterOn = leftThrusterOn || kbd.isKeyDown(kbd.LEFT_ARROW)
       if (leftThrusterOn) body.applyForceLocal([force, 0])
       fireLeft.visible = leftThrusterOn
 
-      const rightThrusterOn = padIsKeyDown(gamepad, 'e')
+      let rightThrusterOn = padIsKeyDown(gamepad, 'e')
+      if (i === 0) rightThrusterOn = rightThrusterOn || kbd.isKeyDown(kbd.RIGHT_ARROW)
       if (rightThrusterOn) body.applyForceLocal([-force, 0])
       fireRight.visible = rightThrusterOn
 
