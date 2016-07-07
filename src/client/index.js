@@ -44,9 +44,9 @@ function addCar () {
   sprite.endFill()
 
   const fire = new PIXI.Graphics()
-  fire.position = { x: 0.5, y: 1.5 }
+  fire.position = { x: 1, y: 1.75 }
   fire.beginFill(0xFF0000)
-  fire.drawRect(0, 0, 1, 0.5)
+  fire.drawRect(-0.5, 0, 1, 0.5)
   fire.endFill()
   sprite.addChild(fire)
   sprite.fire = fire
@@ -154,7 +154,6 @@ function loop () {
       const oldGamepad = oldGamepads[i]
       const oldLeft = oldGamepad && padIsKeyDown(oldGamepad, kbd.LEFT_ARROW)
       const oldRight = oldGamepad && padIsKeyDown(oldGamepad, kbd.RIGHT_ARROW)
-      console.log(nowLeft, oldLeft)
       if (nowLeft && !oldLeft) body.angle += -Math.PI / 2
       if (nowRight && !oldRight) body.angle += Math.PI / 2
       body.applyForceLocal([0, -force]) // thrust
@@ -188,15 +187,16 @@ function loop () {
     const { body, sprite } = car
     sprite.position = { x: body.position[0], y: body.position[1] }
     sprite.rotation = body.angle
-    sprite.fire.scale.y = Math.random() * 0.5 + 1
+    sprite.fire.scale.x = 1 - Math.random() * 0.5
+    sprite.fire.scale.y = Math.random() * 1 + 1
     sprite.fire.tint = Math.random() < 0.5
       ? 0xFF0000
       : 0xFFFFFF
   })
 
   stage.position = {
-    x: window.innerWidth / 2 / stage.scale.x,
-    y: window.innerHeight / 2 / stage.scale.y
+    x: window.innerWidth / 2 - cars[0].sprite.position.x * stage.scale.x,
+    y: window.innerHeight / 2 - cars[0].sprite.position.y * stage.scale.y
   }
   renderer.render(stage)
   meter.tick()
