@@ -1,6 +1,7 @@
 # Build
 /server
 /client
+/common
 /public/bundle.js
 
 # Node

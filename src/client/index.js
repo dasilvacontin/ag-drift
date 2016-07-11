@@ -3,17 +3,51 @@
 const PIXI = global.PIXI = require('pixi.js')
 const p2 = require('p2')
 const { vec2 } = p2
+const { Howl } = require('howler')
 const kbd = require('@dasilvacontin/keyboard')
 const clone = require('clone')
+const C = require('../common/constants.js')
+
+const WALL_COLOR = 0x3F51B5
+const ROAD_COLOR = 0xAAAAFF
+const FIRE_HIGH = 0x007AFF
+const FIRE_LOW = 0x00FFD4
+
+const musicTracks = [
+  'POL-aggressor-short.wav',
+  'POL-catch-me-short.wav',
+  'POL-divide-by-zero-short.wav', // +1
+  'POL-future-shock-short.wav',
+  'POL-grid-breaking-short.wav',
+  'POL-higher-short.wav',
+  'POL-humanoid-short.wav',
+  'POL-mathrix-short.wav',
+  'POL-night-in-motion-short.wav',
+  'POL-parallel-fields-short.wav'
+]
+function getRandomMusicTrack () {
+  const track = musicTracks[Math.floor(Math.random() * musicTracks.length)]
+  console.log(track)
+  return 'sounds/' + track
+}
+const bgMusic = new Howl({
+  urls: [getRandomMusicTrack()],
+  buffer: true,
+  loop: true
+})
+bgMusic.play()
 
 const renderer = new PIXI.autoDetectRenderer(
   window.innerWidth,
   window.innerHeight,
-  { backgroundColor: 0x3F51B5 })
+  { backgroundColor: WALL_COLOR })
 document.body.appendChild(renderer.view)
 
+const camera = new PIXI.Container()
 const stage = global.stage = new PIXI.Container()
-stage.scale = { x: 20, y: 20 }
+camera.addChild(stage)
+const ZOOM = 12
+stage.scale = { x: ZOOM, y: ZOOM }
 
 function onResize () {
   const width = window.innerWidth
@@ -40,21 +74,24 @@ function addCar () {
   body.addShape(shape)
   world.addBody(body)
 
+  // chasis
   const color = 0xFFFFFF * Math.random()
   const sprite = new PIXI.Graphics()
   sprite.pivot = { x: 1, y: 1 }
   sprite.beginFill(color)
   sprite.drawRect(0, 0, 2, 2)
   sprite.endFill()
+
   // windshield
   sprite.moveTo(0.35, 0.1)
-  sprite.fillAlpha = 0.8
   sprite.beginFill(0xFFFFFF)
+  sprite.fillAlpha = 0.75
   sprite.lineTo(1.65, 0.1)
   sprite.lineTo(1.3, 0.9)
   sprite.lineTo(0.7, 0.9)
   sprite.endFill()
 
+  // chasis peak
   sprite.beginFill(0x000000)
   sprite.fillAlpha = 0.1
   sprite.moveTo(0.7, 0.9)
@@ -64,6 +101,7 @@ function addCar () {
   sprite.endFill()
   stage.addChild(sprite)
 
+  // main thruster
   const fire = new PIXI.Graphics()
   fire.position = new PIXI.Point(1, 1.75)
   fire.beginFill(0xFFFFFF)
@@ -72,6 +110,7 @@ function addCar () {
   sprite.addChild(fire)
   sprite.fire = fire
 
+  // left thruster
   const fireLeft = new PIXI.Graphics()
   fireLeft.beginFill(0xFFFFFF)
   fireLeft.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
@@ -83,6 +122,7 @@ function addCar () {
   sprite.addChild(fireLeft)
   sprite.fireLeft = fireLeft
 
+  // right thruster
   const fireRight = new PIXI.Graphics()
   fireRight.beginFill(0xFFFFFF)
   fireRight.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
@@ -94,8 +134,7 @@ function addCar () {
   sprite.addChild(fireRight)
   sprite.fireRight = fireRight
 
-  const username = ' ' || prompt(`Username for Player #${cars.length + 1}:`)
-  const car = { body, shape, sprite, username }
+  const car = { body, shape, sprite, color }
   cars.push(car)
 }
 
@@ -115,6 +154,7 @@ const CELL_EDGE = 10
 const HALF_EDGE = CELL_EDGE / 2
 map.forEach((row, i) => {
   row.split('').forEach((cell, j) => {
+    // if it's a wall, add a collider
     if (cell === '1') {
       const cellShape = new p2.Box({ width: CELL_EDGE, height: CELL_EDGE })
       const cellBody = new p2.Body({
@@ -126,32 +166,18 @@ map.forEach((row, i) => {
     }
 
     const sprite = new PIXI.Graphics()
-    sprite.beginFill(cell === '1' ? 0x3F51B5 : 0xAAAAFF)
-    sprite.drawRect(0, 0, 10, 10)
+    sprite.beginFill(cell === '1' ? WALL_COLOR : ROAD_COLOR)
+    sprite.drawRect(0, 0, CELL_EDGE, CELL_EDGE)
     sprite.endFill()
     sprite.position = new PIXI.Point(j * CELL_EDGE - HALF_EDGE, i * CELL_EDGE - HALF_EDGE)
     stage.addChild(sprite)
   })
 })
 
-function onAssetsLoaded () {
-  addCar()
-  addCar()
-  addCar()
-  addCar()
-  addCar()
-  addCar()
-  loop()
-}
-
-PIXI.loader
-.add('images/sheet.json')
-.load(onAssetsLoaded)
-
 let oldGamepads: Array<?Object> = []
 
-const timeStep = 1 / 60
-const force = 300
+const TIME_STEP = 1 / 60
+const FORCE = 300
 
 function padIsKeyDown (gamepad, key) {
   if (gamepad == null) return false
@@ -169,21 +195,75 @@ function padIsKeyDown (gamepad, key) {
   }
 }
 
-global.FIRE_HIGH = 0x007AFF
-global.FIRE_LOW = 0x00FFD4
 let playerOldLeft, playerOldRight
-
 const meter = new FPSMeter()
-function loop () {
-  requestAnimationFrame(loop)
-  meter.tickStart()
 
+type Track = Array<Array<number>>
+type GameEvent = Object
+
+class Ship {
+  position: vec2
+  velocity: vec2
+  color: number
+
+  constructor (position: vec2, velocity: vec2, color: number) {
+    this.position = position
+    this.velocity = velocity
+    this.color = color
+  }
+}
+
+class Turn {
+  map: Track
+  ships: Array<Ship>
+  events: Array<GameEvent>
+  serverEvents: Array<GameEvent>
+
+  constructor (map: Track, ships: Array<Ship>, events: Array<GameEvent>, serverEvents: Array<GameEvent>) {
+    this.map = map
+    this.ships = ships
+    this.events = events
+    this.serverEvents = serverEvents
+  }
+
+  addShip () : number {
+    let freeSlot = 0
+    const reservedSlots = {}
+    this.serverEvents.forEach(serverEvent => {
+      if (serverEvent.type !== C.SERVER_EVENT_TYPE.SPAWN_PLAYER) return
+      reservedSlots[serverEvent.bikeId] = true
+    })
+
+    while (this.ships[freeSlot] != null) ++freeSlot
+    return freeSlot
+  }
+
+  evolve () {}
+}
+
+class Game {
+  socketToShip: Object
+  turn: Turn
+  turns: Array<Turn>
+
+  constructor (map : Track) {
+    this.socketToShip = {}
+    this.turn = new Turn(map, [], [], [])
+    this.turns = [this.turn]
+  }
+
+  onPlayerJoin (socket) {
+    const shipId = this.turn.addShip()
+    this.socketToShip[socket.id] = shipId
+  }
+}
+function logic () {
   let gamepads = navigator.getGamepads()
 
   if (gamepads.length > 0) {
     cars.forEach((car, i) => {
       const { body, sprite } = car
-      const { fire, fireLeft, fireRight } = sprite
+      const { fireLeft, fireRight } = sprite
       const gamepad = gamepads[i]
       let nowLeft = padIsKeyDown(gamepad, kbd.LEFT_ARROW)
       let nowRight = padIsKeyDown(gamepad, kbd.RIGHT_ARROW)
@@ -201,31 +281,21 @@ function loop () {
 
       if (nowLeft && !oldLeft) body.angle += -Math.PI / 2
       if (nowRight && !oldRight) body.angle += Math.PI / 2
-      body.applyForceLocal([0, -force]) // thrust
+      body.applyForceLocal([0, -FORCE]) // thrust
 
       if (i === 0) {
         playerOldLeft = nowLeft
         playerOldRight = nowRight
       }
 
-      // thruster animation
-      const thrusters = [fire, fireLeft, fireRight]
-      thrusters.forEach((thruster) => {
-        thruster.scale.x = 1 - Math.random() * 0.5
-        thruster.scale.y = Math.random() * 1 + 1
-        thruster.tint = Math.random() < 0.5
-          ? global.FIRE_HIGH
-          : global.FIRE_LOW
-      })
-
       let leftThrusterOn = padIsKeyDown(gamepad, 'q')
       if (i === 0) leftThrusterOn = leftThrusterOn || kbd.isKeyDown(kbd.LEFT_ARROW)
-      if (leftThrusterOn) body.applyForceLocal([force, 0])
+      if (leftThrusterOn) body.applyForceLocal([FORCE, 0])
       fireLeft.visible = leftThrusterOn
 
       let rightThrusterOn = padIsKeyDown(gamepad, 'e')
       if (i === 0) rightThrusterOn = rightThrusterOn || kbd.isKeyDown(kbd.RIGHT_ARROW)
-      if (rightThrusterOn) body.applyForceLocal([-force, 0])
+      if (rightThrusterOn) body.applyForceLocal([-FORCE, 0])
       fireRight.visible = rightThrusterOn
 
       // air drag
@@ -245,17 +315,46 @@ function loop () {
     }
   })
 
-  world.step(timeStep)
+  world.step(TIME_STEP)
+}
 
+function loop () {
+  requestAnimationFrame(loop)
+  meter.tickStart()
+
+  logic()
+
+  // update ship sprites
   cars.forEach((car) => {
     const { body, sprite } = car
+    const { fire, fireLeft, fireRight } = sprite
     sprite.position = new PIXI.Point(body.position[0], body.position[1])
     sprite.rotation = body.angle
+
+    // thruster animation
+    const thrusters = [fire, fireLeft, fireRight]
+    thrusters.forEach((thruster) => {
+      thruster.scale.x = 1 - Math.random() * 0.5
+      thruster.scale.y = Math.random() * 1 + 1
+      thruster.tint = Math.random() < 0.5
+        ? FIRE_HIGH
+        : FIRE_LOW
+    })
   })
 
+  // update camera
+  const [halfWidth, halfHeight] = [window.innerWidth, window.innerHeight]
+  .map(e => e / 2)
+  const player = cars[0]
   stage.position = new PIXI.Point(
-    window.innerWidth / 2 - cars[0].sprite.position.x * stage.scale.x,
-    window.innerHeight / 2 - cars[0].sprite.position.y * stage.scale.y)
-  renderer.render(stage)
+    halfWidth - player.sprite.position.x * stage.scale.x,
+    halfHeight - player.sprite.position.y * stage.scale.y)
+  camera.pivot = { x: halfWidth, y: halfHeight }
+  camera.position = new PIXI.Point(halfWidth, halfHeight)
+  camera.rotation += (-player.sprite.rotation - camera.rotation) / 15
+  renderer.render(camera)
   meter.tick()
 }
+
+addCar()
+loop()
