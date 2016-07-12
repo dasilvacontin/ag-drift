@@ -1,18 +1,17 @@
 const p2 = require('p2')
 const { vec2 } = p2
 const PlayerInput = require('./PlayerInput.js')
+const Ship = require('./Ship.js')
 const C = require('./constants.js')
 
 const world = new p2.World({ gravity: [0, 0] })
 
 class Turn {
-  map: Track
   ships: Array<Ship>
   events: Array<GameEvent>
   serverEvents: Array<GameEvent>
 
-  constructor (map: Track, ships: Array<Ship>, events: Array<GameEvent>, serverEvents: Array<GameEvent>) {
-    this.map = map
+  constructor (ships: Array<Ship>, events: Array<GameEvent>, serverEvents: Array<GameEvent>) {
     this.ships = ships
     this.events = events
     this.serverEvents = serverEvents
@@ -41,15 +40,14 @@ class Turn {
     this.serverEvents = this.serverEvents.concat(evs)
   }
 
-  evolve () {
-    // TO-DO: clone objects, quite some stuff left to do
+  evolve (world, bodies) {
     this.ships.forEach((ship, i) => {
-      const { body } = ship
+      let body = bodies[i]
+      // TO-DO: handle when bodies haven't been created yet
 
-      const player = this.players[i]
       const playerEvents = this.events[i]
 
-      const input = new PlayerInput(player.input)
+      const input = new PlayerInput(ship.input)
       playerEvents.forEach(input.applyPlayerEvent, input)
 
       // turn left
@@ -74,6 +72,18 @@ class Turn {
     })
 
     world.step(C.TIME_STEP)
+
+    const nextShips = this.ships.map((ship, i) => {
+      let body = bodies[i]
+      return new Ship(
+        body.position.clone(),
+        body.velocity.clone(),
+        ship.color
+      )
+    })
+
+    const nextTurn = new Turn(nextShips, [], [])
+    return nextTurn
   }
 }
 

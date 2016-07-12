@@ -17,6 +17,7 @@ class Game {
 
     const world = new p2.World({ gravity: [0, 0] })
     this.world = world
+    this.bodies = []
 
     map.forEach((row, i) => {
       row.split('').forEach((cell, j) => {
