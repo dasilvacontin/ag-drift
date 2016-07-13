@@ -1,8 +1,9 @@
+// @flow
 class PlayerEvent {
   type: string
   val: any
 
-  constructor (type, val) {
+  constructor (type: string, val: any) {
     this.type = type
     this.val = val
   }

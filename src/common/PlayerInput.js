@@ -1,3 +1,4 @@
+// @flow
 const C = require('./constants.js')
 
 class PlayerInput {
@@ -15,6 +16,14 @@ class PlayerInput {
     leanR = false,
     turnL = false,
     turnR = false
+  }: {
+    gas: boolean,
+    boost: boolean,
+    leanL: boolean,
+    leanL: boolean,
+    leanR: boolean,
+    turnL: boolean,
+    turnR: boolean
   } = {}) {
     this.gas = gas
     this.boost = boost

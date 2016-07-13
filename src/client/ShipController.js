@@ -1,3 +1,5 @@
+// @flow
+const PIXI = require('pixi.js')
 const Ship = require('../common/Ship.js')
 const { Howl } = require('howler')
 
@@ -31,25 +33,11 @@ class ShipController {
   mainFire: PIXI.DisplayObject
   engineSoundId: ?number
 
-  constructor () {
-    /*
-    const i = cars.length
-    const body = new p2.Body({
-      mass: 5,
-      position: [7 + (i % 2 !== 0 ? 5 : 0), 15 + 3 * i],
-      fixedRotation: true
-    })
-
-    const shape = new p2.Box({ width: 2, height: 2 })
-    body.addShape(shape)
-    world.addBody(body)
-    */
-
+  constructor (ship: Ship) {
     // chasis
-    const color = 0xFFFFFF * Math.random()
     const sprite = new PIXI.Graphics()
     sprite.pivot = { x: 1, y: 1 }
-    sprite.beginFill(color)
+    sprite.beginFill(ship.color)
     sprite.moveTo(0.2, 0)
     sprite.lineTo(1.8, 0)
     sprite.lineTo(2, 2)
@@ -84,7 +72,7 @@ class ShipController {
     mainFire.drawRect(-0.5, 0, 1, 0.5)
     mainFire.endFill()
     sprite.addChild(mainFire)
-    sprite.mainFire = mainFire
+    this.mainFire = sprite.mainFire = mainFire
 
     // left thruster
     const leftFire = new PIXI.Graphics()
@@ -96,25 +84,25 @@ class ShipController {
     leftFire.visible = false
     leftFire.alpha = 0.5
     sprite.addChild(leftFire)
-    sprite.leftFire = leftFire
+    this.leftFire = sprite.leftFire = leftFire
 
     // right thruster
-    const fireRight = new PIXI.Graphics()
-    fireRight.beginFill(0xFFFFFF)
-    fireRight.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
-    fireRight.endFill()
-    fireRight.position = new PIXI.Point(2, 1)
-    fireRight.rotation = -Math.PI / 2
-    fireRight.visible = false
-    fireRight.alpha = 0.5
-    sprite.addChild(fireRight)
-    sprite.fireRight = fireRight
+    const rightFire = new PIXI.Graphics()
+    rightFire.beginFill(0xFFFFFF)
+    rightFire.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
+    rightFire.endFill()
+    rightFire.position = new PIXI.Point(2, 1)
+    rightFire.rotation = -Math.PI / 2
+    rightFire.visible = false
+    rightFire.alpha = 0.5
+    sprite.addChild(rightFire)
+    this.rightFire = sprite.rightFire = rightFire
   }
 
   update (ship: Ship) {
-    const { body, input } = ship
-    this.sprite.position = new PIXI.Point(body.position[0], body.position[1])
-    this.sprite.rotation = body.angle
+    const { position, angle, input } = ship
+    this.sprite.position = new PIXI.Point(position[0], position[1])
+    this.sprite.rotation = angle
 
     // turning sound
     if (input.turnL || input.turnR) turnSound.play(() => {})
@@ -123,7 +111,7 @@ class ShipController {
     if (input.gas) boost = input.boost ? 2 : 1
 
     // thruster animation
-    const thrusters = [this.fire, this.fireLeft, this.fireRight]
+    const thrusters = [this.mainFire, this.leftFire, this.rightFire]
     thrusters.forEach((thruster, k) => {
       // random flame shiverring
       thruster.scale.x = 1 - Math.random() * 0.5

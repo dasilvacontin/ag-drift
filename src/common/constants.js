@@ -1,3 +1,4 @@
+// @flow
 module.exports = {
   TIME_STEP: 1 / 60,
   FORCE: 300,
@@ -7,7 +8,7 @@ module.exports = {
   WALL_COLOR: 0x3F51B5,
   ROAD_COLOR: 0xAAAAFF,
 
-  EVENT_TYPE: {
+  SERVER_EVENT: {
     SPAWN_PLAYER: 'spawnPlayer'
   },
 

@@ -27,7 +27,7 @@ function getRandomMusicTrack () {
   if (index == null) {
     index = Math.floor(Math.random() * musicTracks.length)
   } else index = Number(index)
-  index = 1
+  index = 1 // such random
   const track = musicTracks[index]
   console.log(track)
   return 'sounds/' + track
@@ -47,7 +47,7 @@ const map = [
   '101111111111001',
   '100000000000001',
   '111111111111111'
-]
+].map((row) => row.split('').map(Number))
 
 const renderer = new PIXI.autoDetectRenderer(
   window.innerWidth,
@@ -76,16 +76,13 @@ function padIsKeyDown (gamepad, key) {
   const { buttons } = gamepad
   const axes = gamepad.axes.map(Math.round)
 
-  if (key === 'q') key = 'e'
-  else if (key === 'e') key = 'q'
-
   switch (key) {
     case kbd.RIGHT_ARROW: return axes[0] === 1 || buttons[15] && buttons[15].pressed
     case kbd.LEFT_ARROW: return axes[0] === -1 || buttons[14] && buttons[14].pressed
     case kbd.UP_ARROW: return axes[1] === -1
     case kbd.DOWN_ARROW: return axes[1] === 1
-    case 'q': return buttons[4].pressed
-    case 'e': return buttons[5].pressed || buttons[6].pressed
+    case 'a': return buttons[4].pressed
+    case 'd': return buttons[5].pressed || buttons[6].pressed
     case ' ': return buttons[0].pressed
     case 's': return buttons[2].pressed
     default: throw new Error('Unsupported key')
@@ -94,6 +91,7 @@ function padIsKeyDown (gamepad, key) {
 
 const game = new Game(map)
 const gameController = new GameController(game, stage)
+const oldInputs = []
 
 // const meter = new FPSMeter()
 function gameLoop () {
@@ -106,18 +104,22 @@ function gameLoop () {
     if (ship == null) return
 
     const gamepad = gamepads[i]
-    const oldInput = ship.input
+    const oldInput = oldInputs[i] || new PlayerInput()
     const input = new PlayerInput()
 
     input.turnL = padIsKeyDown(gamepad, kbd.LEFT_ARROW)
     input.turnR = padIsKeyDown(gamepad, kbd.RIGHT_ARROW)
+    input.leanL = padIsKeyDown(gamepad, 'a')
+    input.leanR = padIsKeyDown(gamepad, 'd')
     input.gas = padIsKeyDown(gamepad, 's')
     input.boost = padIsKeyDown(gamepad, ' ')
 
     // let ship #1 be able to be controlled by keyboard as well
     if (i === 0) {
-      input.turnL = input.turnL || kbd.isKeyDown('a')
-      input.turnR = input.turnR || kbd.isKeyDown('d')
+      input.turnL = input.turnL || kbd.isKeyDown(kbd.LEFT_ARROW)
+      input.turnR = input.turnR || kbd.isKeyDown(kbd.RIGHT_ARROW)
+      input.leanL = input.leanL || kbd.isKeyDown('a')
+      input.leanR = input.leanR || kbd.isKeyDown('d')
       input.gas = input.gas || kbd.isKeyDown('s')
       input.boost = input.boost || kbd.isKeyDown(' ')
     }
@@ -125,18 +127,25 @@ function gameLoop () {
     // generate PlayerEvents from input - oldInput
     const events = []
     if (input.turnL && !oldInput.turnL) {
-      events.push(new PlayerEvent(C.EVENT_TYPE.TURN_L))
+      events.push(new PlayerEvent(C.PLAYER_EVENT.TURN_L, input.turnL))
     }
     if (input.turnR && !oldInput.turnR) {
-      events.push(new PlayerEvent(C.EVENT_TYPE.TURN_R))
+      events.push(new PlayerEvent(C.PLAYER_EVENT.TURN_R, input.turnR))
+    }
+    if (input.leanL !== oldInput.leanL) {
+      events.push(new PlayerEvent(C.PLAYER_EVENT.LEAN_L, input.leanL))
+    }
+    if (input.leanR !== oldInput.leanR) {
+      events.push(new PlayerEvent(C.PLAYER_EVENT.LEAN_R, input.leanR))
     }
     if (input.gas !== oldInput.gas) {
-      events.push(new PlayerEvent(C.EVENT_TYPE.GAS, input.gas))
+      events.push(new PlayerEvent(C.PLAYER_EVENT.GAS, input.gas))
     }
     if (input.boost !== oldInput.boost) {
-      events.push(new PlayerEvent(C.EVENT_TYPE.BOOST, input.boost))
+      events.push(new PlayerEvent(C.PLAYER_EVENT.BOOST, input.boost))
     }
-    game.onPlayerEvent({ id: i }, events)
+    game.onPlayerEvent({ id: String(i) }, events)
+    oldInputs[i] = input
   })
 
   // perform physics updates
@@ -151,15 +160,17 @@ function gameLoop () {
     window.innerHeight
   ].map(e => e / 2)
 
-  const player = game.turn.ships[0]
-  stage.position = new PIXI.Point(
-    halfWidth - player.sprite.position.x * stage.scale.x,
-    halfHeight - player.sprite.position.y * stage.scale.y)
-  camera.pivot = { x: halfWidth, y: halfHeight }
-  camera.position = new PIXI.Point(halfWidth, halfHeight)
-  camera.rotation += (-player.sprite.rotation - camera.rotation) / 15
+  const player = gameController.ships[0]
+  if (player) {
+    stage.position = new PIXI.Point(
+      halfWidth - player.sprite.position.x * stage.scale.x,
+      halfHeight - player.sprite.position.y * stage.scale.y)
+    camera.pivot = { x: halfWidth, y: halfHeight }
+    camera.position = new PIXI.Point(halfWidth, halfHeight)
+    camera.rotation += (-player.sprite.rotation - camera.rotation) / 15
+  }
   renderer.render(camera)
   // meter.tick()
 }
-game.onPlayerJoin({ id: 0 })
+game.onPlayerJoin({ id: '0' })
 gameLoop()
