@@ -5,7 +5,7 @@
   "main": "server/index.js",
   "scripts": {
     "lint": "eslint src test",
-    "typecheck": "flow",
+    "typecheck": "node -e 'process.env.SKIP_FLOW || process.exit(1)' || flow",
     "pretest": "npm run lint && npm run typecheck",
     "test": "mocha --compilers js:babel-register --growl",
     "coverage": "istanbul cover node_modules/mocha/bin/_mocha -- --compilers js:babel-register",

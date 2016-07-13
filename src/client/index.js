@@ -79,12 +79,10 @@ function padIsKeyDown (gamepad, key) {
   switch (key) {
     case kbd.RIGHT_ARROW: return axes[0] === 1 || buttons[15] && buttons[15].pressed
     case kbd.LEFT_ARROW: return axes[0] === -1 || buttons[14] && buttons[14].pressed
-    case kbd.UP_ARROW: return axes[1] === -1
-    case kbd.DOWN_ARROW: return axes[1] === 1
+    case kbd.UP_ARROW: return buttons[2].pressed
     case 'a': return buttons[4].pressed
     case 'd': return buttons[5].pressed || buttons[6].pressed
-    case ' ': return buttons[0].pressed
-    case 's': return buttons[2].pressed
+    case 's': return buttons[0].pressed
     default: throw new Error('Unsupported key')
   }
 }
@@ -111,8 +109,8 @@ function gameLoop () {
     input.turnR = padIsKeyDown(gamepad, kbd.RIGHT_ARROW)
     input.leanL = padIsKeyDown(gamepad, 'a')
     input.leanR = padIsKeyDown(gamepad, 'd')
-    input.gas = padIsKeyDown(gamepad, 's')
-    input.boost = padIsKeyDown(gamepad, ' ')
+    input.gas = padIsKeyDown(gamepad, kbd.UP_ARROW)
+    input.boost = padIsKeyDown(gamepad, 's')
 
     // let ship #1 be able to be controlled by keyboard as well
     if (i === 0) {
@@ -120,8 +118,8 @@ function gameLoop () {
       input.turnR = input.turnR || kbd.isKeyDown(kbd.RIGHT_ARROW)
       input.leanL = input.leanL || kbd.isKeyDown('a')
       input.leanR = input.leanR || kbd.isKeyDown('d')
-      input.gas = input.gas || kbd.isKeyDown('s')
-      input.boost = input.boost || kbd.isKeyDown(' ')
+      input.gas = input.gas || kbd.isKeyDown(kbd.UP_ARROW)
+      input.boost = input.boost || kbd.isKeyDown('s')
     }
 
     // generate PlayerEvents from input - oldInput
@@ -174,3 +172,14 @@ function gameLoop () {
 }
 game.onPlayerJoin({ id: '0' })
 gameLoop()
+
+// avoid moving the page around
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  switch (e.keyCode) {
+    case kbd.LEFT_ARROW:
+    case kbd.RIGHT_ARROW:
+    case kbd.UP_ARROW:
+    case kbd.DOWN_ARROW:
+      e.preventDefault()
+  }
+}, false)
