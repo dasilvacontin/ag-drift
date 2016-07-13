@@ -11,5 +11,3 @@ declare class FPSMeter {
 
 declare type Track = Array<Array<number>>
 declare type GameEvent = { type: string, val: any }
-
-declare type Socket = { id: string }

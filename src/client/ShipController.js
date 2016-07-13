@@ -131,7 +131,7 @@ class ShipController {
     this.rightFire.visible = input.leanL
     let { engineSoundId } = this
 
-    if (boost > 0 || input.leanR || input.leanR) {
+    if (boost > 0 || input.leanL || input.leanR) {
       if (isSoundPaused(engineSound, engineSoundId) ||
          engineSound.pos(undefined, engineSoundId) > 1) {
         if (engineSoundId != null) engineSound.stop(engineSoundId)

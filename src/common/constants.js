@@ -1,6 +1,7 @@
 // @flow
 module.exports = {
-  TIME_STEP: 1 / 60,
+  TURN_MAX_DELAY: 30, // 500ms at 1/60 steps per s
+  TIME_STEP: 1000 / 60,
   FORCE: 300,
   CELL_EDGE: 10,
   HALF_EDGE: 10 / 2,

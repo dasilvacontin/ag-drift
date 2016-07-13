@@ -3,12 +3,18 @@
 const PIXI = global.PIXI = require('pixi.js')
 const { Howl } = require('howler')
 const kbd = require('@dasilvacontin/keyboard')
+const io = require('socket.io-client')
+const socket = io()
 
+const Ship = require('../common/Ship.js')
+const Turn = require('../common/Turn.js')
 const Game = require('../common/Game.js')
 const GameController = require('./GameController.js')
 const PlayerEvent = require('../common/PlayerEvent.js')
 const PlayerInput = require('../common/PlayerInput.js')
 const C = require('../common/constants.js')
+const DEBUG_MODE = Boolean(localStorage.getItem('DEBUG'))
+const MUSIC_OFF = Boolean(localStorage.getItem('MUSIC_OFF'))
 
 const musicTracks = [
   'POL-divide-by-zero-short.wav', // +2
@@ -27,7 +33,6 @@ function getRandomMusicTrack () {
   if (index == null) {
     index = Math.floor(Math.random() * musicTracks.length)
   } else index = Number(index)
-  index = 1 // such random
   const track = musicTracks[index]
   console.log(track)
   return 'sounds/' + track
@@ -37,17 +42,6 @@ const bgMusic = new Howl({
   buffer: true,
   loop: true
 })
-bgMusic.play()
-
-const map = [
-  '111111111111111',
-  '100001110000001',
-  '101000000111001',
-  '101111111111101',
-  '101111111111001',
-  '100000000000001',
-  '111111111111111'
-].map((row) => row.split('').map(Number))
 
 const renderer = new PIXI.autoDetectRenderer(
   window.innerWidth,
@@ -87,19 +81,20 @@ function padIsKeyDown (gamepad, key) {
   }
 }
 
-const game = new Game(map)
-const gameController = new GameController(game, stage)
+let game, gameController, myShipId
 const oldInputs = []
 
 const meter = new FPSMeter()
 function gameLoop () {
   requestAnimationFrame(gameLoop)
+  if (game == null || !game.canTick()) return
+
   meter.tickStart()
 
   // get inputs for this turn
   let gamepads = navigator.getGamepads() || []
   game.turn.ships.forEach((ship, i) => {
-    if (ship == null) return
+    if (ship == null || i !== myShipId) return
 
     const gamepad = gamepads[i]
     const oldInput = oldInputs[i] || new PlayerInput()
@@ -112,15 +107,13 @@ function gameLoop () {
     input.gas = padIsKeyDown(gamepad, kbd.UP_ARROW)
     input.boost = padIsKeyDown(gamepad, 's')
 
-    // let ship #1 be able to be controlled by keyboard as well
-    if (i === 0) {
-      input.turnL = input.turnL || kbd.isKeyDown(kbd.LEFT_ARROW)
-      input.turnR = input.turnR || kbd.isKeyDown(kbd.RIGHT_ARROW)
-      input.leanL = input.leanL || kbd.isKeyDown('a')
-      input.leanR = input.leanR || kbd.isKeyDown('d')
-      input.gas = input.gas || kbd.isKeyDown(kbd.UP_ARROW)
-      input.boost = input.boost || kbd.isKeyDown('s')
-    }
+    // keyboard
+    input.turnL = input.turnL || kbd.isKeyDown(kbd.LEFT_ARROW)
+    input.turnR = input.turnR || kbd.isKeyDown(kbd.RIGHT_ARROW)
+    input.leanL = input.leanL || kbd.isKeyDown('a')
+    input.leanR = input.leanR || kbd.isKeyDown('d')
+    input.gas = input.gas || kbd.isKeyDown(kbd.UP_ARROW)
+    input.boost = input.boost || kbd.isKeyDown('s')
 
     // generate PlayerEvents from input - oldInput
     const events = []
@@ -142,7 +135,11 @@ function gameLoop () {
     if (input.boost !== oldInput.boost) {
       events.push(new PlayerEvent(C.PLAYER_EVENT.BOOST, input.boost))
     }
-    game.onPlayerEvent({ id: String(i) }, events)
+
+    if (events.length > 0) {
+      game.onPlayerEvents(myShipId, events, game.turnIndex)
+      socket.emit('player:events', events, game.turnIndex)
+    }
     oldInputs[i] = input
   })
 
@@ -158,7 +155,7 @@ function gameLoop () {
     window.innerHeight
   ].map(e => e / 2)
 
-  const player = gameController.ships[0]
+  const player = gameController.ships[myShipId]
   if (player) {
     stage.position = new PIXI.Point(
       halfWidth - player.sprite.position.x * stage.scale.x,
@@ -170,8 +167,6 @@ function gameLoop () {
   renderer.render(camera)
   meter.tick()
 }
-game.onPlayerJoin({ id: '0' })
-gameLoop()
 
 // avoid moving the page around
 document.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -183,3 +178,49 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
       e.preventDefault()
   }
 }, false)
+
+socket.on('game:bootstrap', (data) => {
+  console.log('got game:bootstrap', data)
+  const { initialTurn, map, turnsSlice, shipId, lastTick } = data
+  myShipId = shipId
+
+  // so that I don't go cray cray with the music
+  console.log(DEBUG_MODE, shipId)
+  if (!MUSIC_OFF && (!DEBUG_MODE || shipId === 0)) bgMusic.play()
+
+  game = new Game(map)
+  game.turns = []
+  let lastTurn
+  for (let i = 0; i < turnsSlice.length; ++i) {
+    let { ships, events, serverEvents } = turnsSlice[i]
+    ships = ships.map((rawShip) => new Ship(rawShip))
+    const turn = new Turn(ships, events, serverEvents)
+    game.turns[initialTurn + i] = turn
+    lastTurn = turn
+  }
+  if (lastTurn == null) return
+  game.turn = lastTurn
+  game.turnIndex = game.turns.length - 1
+  game.lastTick = lastTick
+  game.lava = initialTurn
+
+  // TO-DO: Handle case where game controller already existed
+  // so that old sprites are removed, etc
+  // maybe create a new PIXI stage altogether?
+  gameController = new GameController(game, stage)
+})
+
+socket.on('server:event', (event, turnIndex) => {
+  console.log('got server:event', event, turnIndex)
+  game.onServerEvent(event, turnIndex)
+})
+
+socket.on('player:events', (shipId, events, turnIndex) => {
+  if (shipId === myShipId) return
+  console.log('got player:events', shipId, events, turnIndex)
+  if (game == null) return
+  game.onPlayerEvents(shipId, events, turnIndex)
+})
+
+gameLoop()
+socket.emit('game:join')
