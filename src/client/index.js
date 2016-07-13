@@ -93,10 +93,10 @@ const game = new Game(map)
 const gameController = new GameController(game, stage)
 const oldInputs = []
 
-// const meter = new FPSMeter()
+const meter = new FPSMeter()
 function gameLoop () {
   requestAnimationFrame(gameLoop)
-  // meter.tickStart()
+  meter.tickStart()
 
   // get inputs for this turn
   let gamepads = navigator.getGamepads() || []
@@ -170,7 +170,7 @@ function gameLoop () {
     camera.rotation += (-player.sprite.rotation - camera.rotation) / 15
   }
   renderer.render(camera)
-  // meter.tick()
+  meter.tick()
 }
 game.onPlayerJoin({ id: '0' })
 gameLoop()
