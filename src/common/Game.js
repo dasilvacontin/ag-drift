@@ -81,6 +81,11 @@ class Game {
       this.turns[i + 1] = nextTurn
       this.turn = nextTurn
     }
+
+    this.sockets.forEach((socket) => {
+      if (socket == null) return
+      socket.emit('game:debug', this.turn)
+    })
   }
 
   onPlayerJoin (socket: Socket) {

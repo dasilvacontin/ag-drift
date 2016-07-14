@@ -9,12 +9,13 @@ class GameController {
   stage: PIXI.Stage
   ships: Array<ShipController>
 
-  constructor (game: Game, stage: PIXI.Stage) {
+  constructor (game: Game, stage: PIXI.Stage, debug: boolean = false) {
     this.game = game
     this.stage = stage
     this.ships = []
 
     // add sprites for map
+    if (debug) return
     game.map.forEach((row, i) => {
       row.forEach((cell, j) => {
         const sprite = new PIXI.Graphics()

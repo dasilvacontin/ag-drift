@@ -82,6 +82,7 @@ function padIsKeyDown (gamepad, key) {
 }
 
 let game, gameController, myShipId
+let debugStage, debugGame, debugGameController
 const oldInputs = []
 
 const meter = new FPSMeter()
@@ -138,6 +139,7 @@ function gameLoop () {
 
     if (events.length > 0) {
       game.onPlayerEvents(myShipId, events, game.turnIndex)
+      console.log('sending player:events', events, game.turnIndex)
       socket.emit('player:events', events, game.turnIndex)
     }
     oldInputs[i] = input
@@ -164,6 +166,7 @@ function gameLoop () {
     camera.position = new PIXI.Point(halfWidth, halfHeight)
     camera.rotation += (-player.sprite.rotation - camera.rotation) / 15
   }
+  stage.addChild(debugStage)
   renderer.render(camera)
   meter.tick()
 }
@@ -189,6 +192,7 @@ socket.on('game:bootstrap', (data) => {
   if (!MUSIC_OFF && (!DEBUG_MODE || shipId === 0)) bgMusic.play()
 
   game = new Game(map)
+  debugGame = new Game(map)
   game.turns = []
   let lastTurn
   for (let i = 0; i < turnsSlice.length; ++i) {
@@ -207,7 +211,12 @@ socket.on('game:bootstrap', (data) => {
   // TO-DO: Handle case where game controller already existed
   // so that old sprites are removed, etc
   // maybe create a new PIXI stage altogether?
+
   gameController = new GameController(game, stage)
+  debugStage = new PIXI.Container()
+  debugStage.alpha = 0.5
+  stage.addChild(debugStage)
+  debugGameController = new GameController(debugGame, debugStage, true)
 })
 
 socket.on('server:event', (event, turnIndex) => {
@@ -220,6 +229,11 @@ socket.on('player:events', (shipId, events, turnIndex) => {
   console.log('got player:events', shipId, events, turnIndex)
   if (game == null) return
   game.onPlayerEvents(shipId, events, turnIndex)
+})
+
+socket.on('game:debug', (turn) => {
+  debugGame.turn = turn
+  debugGameController.update()
 })
 
 gameLoop()

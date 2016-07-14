@@ -133,7 +133,7 @@ class ShipController {
 
     if (boost > 0 || input.leanL || input.leanR) {
       if (isSoundPaused(engineSound, engineSoundId) ||
-         engineSound.pos(undefined, engineSoundId) > 1) {
+         engineSound.pos(undefined, engineSoundId) > 0.1) {
         if (engineSoundId != null) engineSound.stop(engineSoundId)
         engineSound.play((nodeId) => { this.engineSoundId = nodeId })
       }

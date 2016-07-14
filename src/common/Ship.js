@@ -5,8 +5,6 @@ const { vec2 } = require('p2')
 class Ship {
   position: vec2
   velocity: vec2
-  vlambda: vec2
-  wlambda: vec2
   angle: number
   color: number
   input: PlayerInput
@@ -14,24 +12,18 @@ class Ship {
   constructor ({
     position,
     velocity,
-    vlambda,
-    wlambda,
     angle,
     color,
     input
   } : {
     position: vec2,
     velocity: vec2,
-    vlambda: vec2,
-    wlambda: vec2,
     angle: number,
     color: number,
     input: PlayerInput
   }) {
     this.position = position
     this.velocity = velocity
-    this.vlambda = vlambda
-    this.wlambda = wlambda
     this.angle = angle
     this.color = color
     this.input = input
