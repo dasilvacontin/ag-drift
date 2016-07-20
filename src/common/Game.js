@@ -107,9 +107,6 @@ class Game {
 
   resimulateFrom (turnIndex: number) {
     if (this.turnIndex <= turnIndex) return new Error('wtf')
-    if (this.turnIndex - turnIndex > 1) {
-      console.log(`resimulating turn ${turnIndex}/${this.turnIndex}`)
-    }
 
     for (let i = turnIndex; i < this.turnIndex; ++i) {
       const currentTurn = this.turns[i]

@@ -34,7 +34,6 @@ io.on('connection', function (socket) {
   console.log(`${socket.client.id} connected`)
   socket.on('game:join', () => game.onPlayerJoin(socket))
   socket.on('player:events', (events, turnIndex) => {
-    console.log('player:events', events, turnIndex)
     const shipId = game.getShipIdForSocket(socket)
     if (shipId == null) return // TO-DO: some kind of error sent to the client
     game.onPlayerEvents(shipId, events, turnIndex)
