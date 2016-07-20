@@ -8,6 +8,7 @@ const gravity = [0, 0]
 let world = new p2.World({ gravity })
 let bodies = []
 
+/*
 function resetWorld (world) {
   const { solver, islandManager, broadphase, overlapKeeper } = world
   delete world._listeners
@@ -50,6 +51,7 @@ function resetWorld (world) {
 
   p2.Body._idCounter = 0
 }
+*/
 
 function getId (socket: Socket) { return socket.client.id || socket.id }
 
@@ -122,11 +124,7 @@ class Game {
       }
 
       const { events, serverEvents } = nextTurn
-      p2.Body._idCounter = 0
-      world = new p2.World({ gravity })
-      bodies = []
-      this.generateCellBodies()
-      this.cellBodies.forEach((body) => world.addBody(body))
+
       /*
       resetWorld(world)
       this.cellBodies.forEach((body) => {
@@ -134,6 +132,11 @@ class Game {
         world.addBody(body)
       })
       */
+      p2.Body._idCounter = 0
+      world = new p2.World({ gravity })
+      bodies = []
+      this.generateCellBodies()
+      this.cellBodies.forEach((body) => world.addBody(body))
 
       nextTurn = currentTurn.evolve(world, bodies)
       nextTurn.events = events
