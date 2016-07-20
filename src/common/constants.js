@@ -28,7 +28,7 @@ const constants = {
   InvalidTurnError: subError('InvalidTurnError')
 }
 
-constants.TIME_STEP = 1000 / 10
+constants.TIME_STEP = 1000 / 60
 constants.TURN_MAX_DELAY = Math.ceil(500 / constants.TIME_STEP)
 
 module.exports = constants
