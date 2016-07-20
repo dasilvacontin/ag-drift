@@ -179,7 +179,7 @@ class Game {
       this.turns[turnIndex] = turn
     }
 
-    const changed = this.turn.addEvents(shipId, events)
+    const changed = turn.addEvents(shipId, events)
     if (changed) {
       this.resimulateFrom(turnIndex)
 
