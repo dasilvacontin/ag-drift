@@ -177,6 +177,7 @@ class Game {
   }
 
   bootstrapSocket (socket: Socket) {
+    if (!this.isServer) return
     const initialTurn = Math.max(this.turnIndex - C.TURN_MAX_DELAY, 0)
     let turnsSlice = this.turns.slice(initialTurn)
 
