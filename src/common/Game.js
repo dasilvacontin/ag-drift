@@ -47,6 +47,8 @@ function resetWorld (world) {
   overlapKeeper.overlappingShapesCurrentState.reset()
   overlapKeeper.tmpDict.reset()
   overlapKeeper.tmpArray1.length = 0
+
+  p2.Body._idCounter = 0
 }
 
 function getId (socket: Socket) { return socket.client.id || socket.id }
@@ -115,7 +117,10 @@ class Game {
 
       const { events, serverEvents } = nextTurn
       resetWorld(world)
-      this.cellBodies.forEach(body => world.addBody(body))
+      this.cellBodies.forEach((body) => {
+        body.id = ++p2.Body._idCounter
+        world.addBody(body)
+      })
 
       nextTurn = currentTurn.evolve(world, bodies)
       nextTurn.events = events

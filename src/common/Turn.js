@@ -1,13 +1,13 @@
 // @flow
 const p2 = require('p2')
-const { vec2, Body } = p2
+const { vec2 } = p2
 const PlayerInput = require('./PlayerInput.js')
 const Ship = require('./Ship.js')
 const C = require('./constants.js')
 
 function resetBody (body) {
   delete body._listeners
-  body.id = ++Body._idCounter
+  body.id = ++p2.Body._idCounter
   body.world = null
 
   // no need to reset shapes / boundingRadius / AABB
@@ -80,7 +80,6 @@ class Turn {
     const nextInputs = []
 
     // create / remove bodies
-    Body._idCounter = 0
     const length = Math.max(this.ships.length, bodies.length)
     for (let i = 0; i < length; ++i) {
       const ship = this.ships[i]
