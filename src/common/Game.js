@@ -249,7 +249,7 @@ class Game {
   }
 
   canTick () {
-    return Date.now() - this.lastTick >= C.TIME_STEP
+    return Date.now() - (this.lastTick + C.CLIENT_LEAD) >= C.TIME_STEP
   }
 
   tick () {
