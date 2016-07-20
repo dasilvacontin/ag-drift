@@ -1,5 +1,7 @@
 // @flow
-module.exports = {
+const subError = require('subclass-error')
+
+const constants = {
   TURN_MAX_DELAY: 30, // 500ms at 1/60 steps per s
   TIME_STEP: 1000 / 60,
   FORCE: 300,
@@ -20,5 +22,12 @@ module.exports = {
     BOOST: 'boost',
     LEAN_L: 'leanL',
     LEAN_R: 'leanR'
-  }
+  },
+
+  InvalidTurnError: subError('InvalidTurnError')
 }
+
+constants.TIME_STEP = 1000 / 60
+constants.TURN_MAX_DELAY = Math.ceil(500 / constants.TIME_STEP)
+
+module.exports = constants

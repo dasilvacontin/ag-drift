@@ -42,6 +42,7 @@ const bgMusic = new Howl({
   buffer: true,
   loop: true
 })
+bgMusic.play()
 
 const renderer = new PIXI.autoDetectRenderer(
   window.innerWidth,
@@ -50,10 +51,7 @@ const renderer = new PIXI.autoDetectRenderer(
 document.body.appendChild(renderer.view)
 
 const camera = new PIXI.Container()
-const stage = global.stage = new PIXI.Container()
-camera.addChild(stage)
 const ZOOM = 12
-stage.scale = { x: ZOOM, y: ZOOM }
 
 function onResize () {
   const width = window.innerWidth
@@ -82,7 +80,7 @@ function padIsKeyDown (gamepad, key) {
 }
 
 let game, gameController, myShipId
-let debugStage, debugGame, debugGameController
+let debugGame, debugGameController
 const oldInputs = []
 
 const meter = new FPSMeter()
@@ -139,7 +137,6 @@ function gameLoop () {
 
     if (events.length > 0) {
       game.onPlayerEvents(myShipId, events, game.turnIndex)
-      console.log('sent events', game.turnIndex, events)
       socket.emit('player:events', events, game.turnIndex)
     }
     oldInputs[i] = input
@@ -161,6 +158,7 @@ function gameLoop () {
 
   const player = gameController.ships[myShipId]
   if (player) {
+    const { stage } = gameController
     stage.position = new PIXI.Point(
       halfWidth - player.sprite.position.x * stage.scale.x,
       halfHeight - player.sprite.position.y * stage.scale.y)
@@ -168,7 +166,6 @@ function gameLoop () {
     camera.position = new PIXI.Point(halfWidth, halfHeight)
     camera.rotation += (-player.sprite.rotation - camera.rotation) / 15
   }
-  stage.addChild(debugStage)
   renderer.render(camera)
   meter.tick()
 }
@@ -185,13 +182,12 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 }, false)
 
 socket.on('game:bootstrap', (data) => {
-  console.log('got game:bootstrap', data)
   const { initialTurn, map, turnsSlice, shipId, lastTick } = data
   myShipId = shipId
 
   // so that I don't go cray cray with the music
-  console.log(DEBUG_MODE, shipId)
-  if (!MUSIC_OFF && (!DEBUG_MODE || shipId === 0)) bgMusic.play()
+  bgMusic.mute(true)
+  if (!MUSIC_OFF && (!DEBUG_MODE || shipId === 0)) bgMusic.mute(false)
 
   game = new Game(map)
   debugGame = new Game(map)
@@ -199,7 +195,7 @@ socket.on('game:bootstrap', (data) => {
   let lastTurn
   for (let i = 0; i < turnsSlice.length; ++i) {
     let { ships, events, serverEvents } = turnsSlice[i]
-    ships = ships.map((rawShip) => new Ship(rawShip))
+    ships = ships.map((rawShip) => rawShip && new Ship(rawShip))
     const turn = new Turn(ships, events, serverEvents)
     game.turns[initialTurn + i] = turn
     lastTurn = turn
@@ -209,26 +205,31 @@ socket.on('game:bootstrap', (data) => {
   game.turnIndex = game.turns.length - 1
   game.lastTick = lastTick
   game.lava = initialTurn
+  game.resimulateFrom(initialTurn)
 
   // TO-DO: Handle case where game controller already existed
   // so that old sprites are removed, etc
   // maybe create a new PIXI stage altogether?
 
-  gameController = new GameController(game, stage)
-  debugStage = new PIXI.Container()
-  debugStage.alpha = 0.5
-  stage.addChild(debugStage)
-  debugGameController = new GameController(debugGame, debugStage, true)
+  if (gameController != null) {
+    camera.removeChild(gameController.stage)
+  }
+
+  gameController = new GameController(game)
+  gameController.stage.scale = { x: ZOOM, y: ZOOM }
+  camera.addChild(gameController.stage)
+
+  debugGameController = new GameController(debugGame, true)
+  debugGameController.stage.alpha = 0.5
+  gameController.stage.addChild(debugGameController.stage)
 })
 
 socket.on('server:event', (event, turnIndex) => {
-  console.log('got server:event', event, turnIndex)
   game.onServerEvent(event, turnIndex)
 })
 
 socket.on('player:events', (shipId, events, turnIndex) => {
   if (shipId === myShipId) return
-  console.log('got player:events', shipId, events, turnIndex)
   if (game == null) return
   game.onPlayerEvents(shipId, events, turnIndex)
 })

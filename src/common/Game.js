@@ -5,8 +5,8 @@ const Turn = require('./Turn.js')
 const C = require('./constants.js')
 
 const gravity = [0, 0]
-const world = new p2.World({ gravity })
-const bodies = []
+let world = new p2.World({ gravity })
+let bodies = []
 
 function resetWorld (world) {
   const { solver, islandManager, broadphase, overlapKeeper } = world
@@ -78,9 +78,15 @@ class Game {
     this.sockets = []
     this.socketToShip = {}
 
+    this.generateCellBodies()
+    this.lava = 0
+    this.lastTick = Date.now()
+  }
+
+  generateCellBodies () {
     this.cellBodies = []
 
-    map.forEach((row, i) => {
+    this.map.forEach((row, i) => {
       row.forEach((cell, j) => {
         // if it's a wall, add a collider
         if (cell === 1) {
@@ -97,9 +103,6 @@ class Game {
         }
       })
     })
-
-    this.lava = 0
-    this.lastTick = Date.now()
   }
 
   getShipIdForSocket (socket: Socket) {
@@ -112,15 +115,25 @@ class Game {
 
     for (let i = turnIndex; i < this.turnIndex; ++i) {
       const currentTurn = this.turns[i]
-      let nextTurn = this.turns[i + 1] || new Turn([], [], [])
-      if (!currentTurn) break
+      let nextTurn = this.turns[i + 1]
+      if (nextTurn == null && i + 1 === this.turnIndex) nextTurn = new Turn([], [], [])
+      if (!currentTurn || !nextTurn) {
+        throw new C.InvalidTurnError(`Got lost ${turnIndex}, ${i}, ${this.lava}, ${this.turnIndex}`)
+      }
 
       const { events, serverEvents } = nextTurn
+      p2.Body._idCounter = 0
+      world = new p2.World({ gravity })
+      bodies = []
+      this.generateCellBodies()
+      this.cellBodies.forEach((body) => world.addBody(body))
+      /*
       resetWorld(world)
       this.cellBodies.forEach((body) => {
         body.id = ++p2.Body._idCounter
         world.addBody(body)
       })
+      */
 
       nextTurn = currentTurn.evolve(world, bodies)
       nextTurn.events = events
@@ -129,10 +142,12 @@ class Game {
       this.turn = nextTurn
     }
 
-    this.sockets.forEach((socket) => {
-      if (socket == null) return
-      socket.emit('game:debug', this.turn)
-    })
+    if (this.isServer) {
+      this.sockets.forEach((socket) => {
+        if (socket == null) return
+        socket.emit('game:debug', this.turn)
+      })
+    }
   }
 
   onPlayerJoin (socket: Socket) {
@@ -154,11 +169,28 @@ class Game {
       socket.emit('server:event', event, this.turnIndex)
     })
 
-    // TO-DO: send a single turn and for the following turns only
-    // send the events - client can reach current turn evolving the
-    // provided one using the events.
+    this.sockets[shipId] = socket
+    this.bootstrapSocket(socket)
+  }
+
+  bootstrapSocket (socket: Socket) {
     const initialTurn = Math.max(this.turnIndex - C.TURN_MAX_DELAY, 0)
-    const turnsSlice = this.turns.slice(initialTurn)
+    let turnsSlice = this.turns.slice(initialTurn)
+
+    // delete `ships` info for all turns but the first one
+    // client will obtain the data resimulating from the first turn
+    turnsSlice = turnsSlice.map((turn, i) => {
+      if (i === 0 || turn == null) return turn
+      return {
+        events: turn.events,
+        serverEvents: turn.serverEvents,
+        ships: []
+      }
+    })
+
+    const socketId = getId(socket)
+    const shipId = this.socketToShip[socketId]
+
     socket.emit('game:bootstrap', {
       initialTurn,
       map: this.map,
@@ -166,7 +198,6 @@ class Game {
       shipId,
       lastTick: this.lastTick
     })
-    this.sockets[shipId] = socket
   }
 
   onPlayerLeave (socket: Socket) {
@@ -179,9 +210,14 @@ class Game {
     turnIndex: number
   ) {
     let turn = this.turns[turnIndex]
-    if (turn == null) {
+    if (turn == null && turnIndex > this.turnIndex) {
       turn = new Turn([], [], [])
       this.turns[turnIndex] = turn
+    }
+    if (turn == null) {
+      console.log(`Player sent event for turn ${turnIndex}, and only accepting events for turn ${this.lava} minimum.`)
+      this.bootstrapSocket(this.sockets[shipId])
+      return
     }
 
     const changed = turn.addEvents(shipId, events)

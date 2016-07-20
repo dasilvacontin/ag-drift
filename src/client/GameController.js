@@ -9,9 +9,9 @@ class GameController {
   stage: PIXI.Stage
   ships: Array<ShipController>
 
-  constructor (game: Game, stage: PIXI.Stage, debug: boolean = false) {
+  constructor (game: Game, debug: boolean = false) {
     this.game = game
-    this.stage = stage
+    this.stage = new PIXI.Container()
     this.ships = []
 
     // add sprites for map
@@ -23,7 +23,7 @@ class GameController {
         sprite.drawRect(0, 0, C.CELL_EDGE, C.CELL_EDGE)
         sprite.endFill()
         sprite.position = new PIXI.Point(j * C.CELL_EDGE - C.HALF_EDGE, i * C.CELL_EDGE - C.HALF_EDGE)
-        stage.addChild(sprite)
+        this.stage.addChild(sprite)
       })
     })
   }
