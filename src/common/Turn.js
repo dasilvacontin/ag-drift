@@ -1,9 +1,36 @@
 // @flow
 const p2 = require('p2')
-const { vec2 } = p2
+const { vec2, Body } = p2
 const PlayerInput = require('./PlayerInput.js')
 const Ship = require('./Ship.js')
 const C = require('./constants.js')
+
+function resetBody (body) {
+  delete body._listeners
+  body.id = ++Body._idCounter
+  body.world = null
+
+  // no need to reset shapes / boundingRadius / AABB
+  // no need to reset mass/invMass/inertia/invInertia/Solve
+  // no need to reset fixedRotation, massMultipler
+
+  vec2.set(body.position, 0, 0)
+  vec2.set(body.interpolatedPosition, 0, 0)
+  vec2.set(body.previousPosition, 0, 0)
+  vec2.set(body.velocity, 0, 0)
+
+  body.angle = body.previousAngle = body.interpolatedAngle = 0
+  body.angularVelocity = 0
+
+  // no need to reset damping/angularDamping
+
+  body.setZeroForce()
+  body.resetConstraintVelocity()
+
+  body.idleTime = body.timeLastSleepy = 0
+  body.concavePath = null
+  body._wakeUpAfterNarrowphase = false
+}
 
 class Turn {
   ships: Array<?Ship>
@@ -53,12 +80,11 @@ class Turn {
     const nextInputs = []
 
     // create / remove bodies
+    Body._idCounter = 0
     const length = Math.max(this.ships.length, bodies.length)
     for (let i = 0; i < length; ++i) {
       const ship = this.ships[i]
       let body = bodies[i]
-
-      if (body) world.removeBody(body)
 
       if (ship) {
         if (body == null) {
@@ -72,7 +98,7 @@ class Turn {
           const shape = new p2.Box({ width: 2, height: 2 })
           body.addShape(shape)
           bodies[i] = body
-        }
+        } else resetBody(body)
         world.addBody(body)
       }
     }
@@ -117,16 +143,11 @@ class Turn {
       let body = bodies[i]
 
       // init / reset props for determinism
-      body.position = vec2.clone(ship.position)
-      body.velocity = vec2.clone(ship.velocity)
+      vec2.copy(body.position, ship.position)
+      vec2.copy(body.velocity, ship.velocity)
       body.angle = ship.angle
-      body.inertia = body.invInertia = 0
-      body.vlambda = vec2.create()
-      body.wlambda = 0
-      body.angularVelocity = 0
-      body.force = vec2.create()
+      vec2.set(body.force, 0, 0)
       body.angularForce = 0
-      body.damping = body.angularDamping = 0.1
 
       const playerEvents = this.events[i] || []
       const input = new PlayerInput(ship.input)

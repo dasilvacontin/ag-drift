@@ -4,20 +4,64 @@ const Socket = require('socket.io-client/lib/socket.js')
 const Turn = require('./Turn.js')
 const C = require('./constants.js')
 
+const gravity = [0, 0]
+const world = new p2.World({ gravity })
+const bodies = []
+
+function resetWorld (world) {
+  const { solver, islandManager, broadphase, overlapKeeper } = world
+  delete world._listeners
+
+  world.springs.length = 0
+  world.bodies.length = 0
+  world.disabledBodyCollisionPairs.length = 0
+
+  solver.removeAllEquations()
+  delete solver._listeners
+
+  world.narrowphase.reset()
+
+  islandManager.equations.length = 0
+  islandManager.islands.forEach((island) => {
+    islandManager.islandPool.release(island)
+  })
+  islandManager.nodes.forEach((node) => {
+    islandManager.nodePool.release(node)
+  })
+  islandManager.nodes.length = 0
+  // no need to reset islandManager.queue
+
+  // my gravity is always the same, no need to reset
+
+  broadphase.result.length = 0
+  broadphase.setWorld(world)
+
+  world.constraints.length = 0
+  world.contactMaterials.length = 0
+  world.time = 0.0
+  world.accumulator = 0
+  world._constraintIdCounter = 0
+  world._bodyIdCounter = 0
+
+  overlapKeeper.overlappingShapesLastState.reset()
+  overlapKeeper.overlappingShapesCurrentState.reset()
+  overlapKeeper.tmpDict.reset()
+  overlapKeeper.tmpArray1.length = 0
+}
+
 function getId (socket: Socket) { return socket.client.id || socket.id }
 
 class Game {
   map: Track
+  isServer: boolean
+
   turn: Turn
   turnIndex: number
   turns: Array<?Turn>
 
   sockets: Array<?Socket>
   socketToShip: Object
-
-  world: p2.World
-  bodies: Array<p2.Body>
-  isServer: boolean
+  cellBodies: Array<p2.Body>
 
   lava: number
   lastTick: number
@@ -32,9 +76,7 @@ class Game {
     this.sockets = []
     this.socketToShip = {}
 
-    const world = new p2.World({ gravity: [0, 0] })
-    this.world = world
-    this.bodies = []
+    this.cellBodies = []
 
     map.forEach((row, i) => {
       row.forEach((cell, j) => {
@@ -49,7 +91,7 @@ class Game {
             position: [j * C.CELL_EDGE, i * C.CELL_EDGE]
           })
           cellBody.addShape(cellShape)
-          world.addBody(cellBody)
+          this.cellBodies.push(cellBody)
         }
       })
     })
@@ -75,7 +117,10 @@ class Game {
       if (!currentTurn) break
 
       const { events, serverEvents } = nextTurn
-      nextTurn = currentTurn.evolve(this.world, this.bodies)
+      resetWorld(world)
+      this.cellBodies.forEach(body => world.addBody(body))
+
+      nextTurn = currentTurn.evolve(world, bodies)
       nextTurn.events = events
       nextTurn.serverEvents = serverEvents
       this.turns[i + 1] = nextTurn
