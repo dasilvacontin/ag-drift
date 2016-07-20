@@ -79,6 +79,24 @@ function padIsKeyDown (gamepad, key) {
   }
 }
 
+let sentPing
+let ping
+// client's Date.now() - server's Date.now()
+let clientLead = 0
+
+function sendPing () {
+  sentPing = Date.now()
+  socket.emit('game:ping')
+}
+sendPing()
+
+socket.on('game:pong', (serverNow) => {
+  ping = (Date.now() - sentPing) / 2
+  clientLead = Date.now() - (serverNow + ping)
+  console.log({ ping, clientLead })
+  setTimeout(sendPing, 500)
+})
+
 let game, gameController, myShipId
 let debugGame, debugGameController
 const oldInputs = []
@@ -201,7 +219,7 @@ socket.on('game:bootstrap', (data) => {
     lastTurn = turn
   }
   if (lastTurn == null) return
-  game.turn = lastTurn
+  game.turn = lastTurn + clientLead
   game.turnIndex = game.turns.length - 1
   game.lastTick = lastTick
   game.lava = initialTurn

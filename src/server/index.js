@@ -41,6 +41,8 @@ io.on('connection', function (socket) {
     if (shipId == null) return // TO-DO: some kind of error sent to the client
     game.onPlayerEvents(shipId, events, turnIndex)
   })
+
+  socket.on('game:ping', () => socket.emit('game:pong', Date.now()))
 })
 
 const PORT = process.env.PORT || 3000
