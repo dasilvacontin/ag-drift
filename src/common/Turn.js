@@ -97,7 +97,10 @@ class Turn {
           const shape = new p2.Box({ width: 2, height: 2 })
           body.addShape(shape)
           bodies[i] = body
-        } else resetBody(body)
+
+          --p2.Body._idCounter
+        }
+        resetBody(body)
         world.addBody(body)
       }
     }
@@ -135,8 +138,6 @@ class Turn {
 
     // apply player inputs
     this.ships.forEach((ship, i) => {
-      // TO-DO: get rid of body, if any. currently irrelevant til players
-      // can actually leave the game
       if (ship == null) return
 
       let body = bodies[i]
@@ -181,16 +182,13 @@ class Turn {
 
     const nextShips = bodies.map((body, i) => {
       const ship = this.ships[i]
-      const color = ship != null ? ship.color : Math.random() * 0xFFFFFF
 
       return new Ship({
         position: vec2.clone(body.position),
         velocity: vec2.clone(body.velocity),
-        vlambda: vec2.clone(body.vlambda),
-        wlambda: body.wlambda,
         angle: body.angle,
-        color: color,
-        input: nextInputs[i] || new PlayerInput()
+        color: ship.color,
+        input: nextInputs[i]
       })
     })
 
