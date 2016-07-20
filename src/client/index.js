@@ -88,8 +88,8 @@ const oldInputs = []
 const meter = new FPSMeter()
 function gameLoop () {
   requestAnimationFrame(gameLoop)
-  if (game == null || !game.canTick()) return
 
+  if (game == null) return
   meter.tickStart()
 
   // get inputs for this turn
@@ -139,17 +139,19 @@ function gameLoop () {
 
     if (events.length > 0) {
       game.onPlayerEvents(myShipId, events, game.turnIndex)
-      console.log('sending player:events', events, game.turnIndex)
+      console.log('sent events', game.turnIndex, events)
       socket.emit('player:events', events, game.turnIndex)
     }
     oldInputs[i] = input
   })
 
-  // perform physics updates
-  game.tick()
+  if (game.canTick()) {
+    // perform physics updates
+    game.tick()
 
-  // update ship sprites
-  gameController.update()
+    // update ship sprites
+    gameController.update()
+  }
 
   // update camera
   const [halfWidth, halfHeight] = [
