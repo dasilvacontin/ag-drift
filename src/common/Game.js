@@ -261,7 +261,7 @@ class Game {
       this.resimulateFrom(currentTurnIndex)
 
       // get rid of old turns
-      if (this.turnIndex - this.lava > C.TURN_MAX_DELAY) {
+      if (this.turnIndex - this.lava > C.TURN_MAX_DELAY * (this.isServer ? 1 : 2)) {
         this.turns[this.lava] = null
         ++this.lava
       }
