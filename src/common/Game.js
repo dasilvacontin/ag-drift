@@ -143,7 +143,6 @@ class Game {
       this.turn = nextTurn
     }
 
-    console.log(this.turnIndex)
     if (this.isServer) {
       this.sockets.forEach((socket) => {
         if (socket == null) return

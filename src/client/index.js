@@ -207,7 +207,6 @@ socket.on('game:bootstrap', (data) => {
   if (!MUSIC_OFF && (!DEBUG_MODE || shipId === 0)) bgMusic.mute(false)
 
   game = new Game(map)
-  debugGame = new Game(map)
   game.turns = []
   let lastTurn
   for (let i = 0; i < turnsSlice.length; ++i) {
@@ -236,9 +235,12 @@ socket.on('game:bootstrap', (data) => {
   gameController.stage.scale = { x: ZOOM, y: ZOOM }
   camera.addChild(gameController.stage)
 
-  debugGameController = new GameController(debugGame, true)
-  debugGameController.stage.alpha = 0.5
-  gameController.stage.addChild(debugGameController.stage)
+  if (DEBUG_MODE) {
+    debugGame = new Game(map)
+    debugGameController = new GameController(debugGame, true)
+    debugGameController.stage.alpha = 0.5
+    gameController.stage.addChild(debugGameController.stage)
+  }
 })
 
 socket.on('server:event', (event, turnIndex) => {
@@ -252,6 +254,7 @@ socket.on('player:events', (shipId, events, turnIndex) => {
 })
 
 socket.on('game:debug', (turn) => {
+  if (!DEBUG_MODE) return
   debugGame.turn = turn
   debugGameController.update()
 })
