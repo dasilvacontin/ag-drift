@@ -7,7 +7,7 @@ const C = require('./constants.js')
 
 function resetBody (body) {
   delete body._listeners
-  body.id = ++p2.Body._idCounter
+  body.id = p2.Body._idCounter++
   body.world = null
 
   // no need to reset shapes / boundingRadius / AABB
@@ -97,10 +97,9 @@ class Turn {
           const shape = new p2.Box({ width: 2, height: 2 })
           body.addShape(shape)
           bodies[i] = body
-
-          --p2.Body._idCounter
+        } else {
+          resetBody(body)
         }
-        resetBody(body)
         world.addBody(body)
       }
     }
@@ -182,6 +181,7 @@ class Turn {
 
     const nextShips = bodies.map((body, i) => {
       const ship = this.ships[i]
+      if (!ship) return
 
       return new Ship({
         position: vec2.clone(body.position),
