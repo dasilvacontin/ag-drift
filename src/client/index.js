@@ -91,8 +91,7 @@ sendPing()
 
 socket.on('game:pong', (serverNow) => {
   ping = (Date.now() - sentPing) / 2
-  let clientLead = C.CLIENT_LEAD = Date.now() - (serverNow + ping)
-  console.log({ ping, clientLead })
+  C.CLIENT_LEAD = Date.now() - (serverNow + ping)
   setTimeout(sendPing, 500)
 })
 
