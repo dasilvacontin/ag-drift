@@ -256,7 +256,14 @@ socket.on('player:events', (shipId, events, turnIndex) => {
   // client issued such commands
   // if (shipId === myShipId) return
   if (game == null) return
-  game.onPlayerEvents(shipId, events, turnIndex)
+  try {
+    game.onPlayerEvents(shipId, events, turnIndex)
+  } catch (e) {
+    if (e instanceof C.InvalidTurnError) {
+      console.log('got lost, requesting bootstrap')
+      socket.emit('player:lost')
+    }
+  }
 })
 
 socket.on('game:debug', (turn) => {

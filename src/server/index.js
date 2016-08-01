@@ -37,9 +37,20 @@ io.on('connection', function (socket) {
 
   socket.on('player:events', (events, turnIndex) => {
     const shipId = game.getShipIdForSocket(socket)
-    console.log(`${socket.client.id} (shipId: ${shipId}) sent event`)
     if (shipId == null) return // TO-DO: some kind of error sent to the client
-    game.onPlayerEvents(shipId, events, turnIndex)
+    try {
+      game.onPlayerEvents(shipId, events, turnIndex)
+    } catch (e) {
+      if (e instanceof C.InvalidTurnError) {
+        console.log(`${socket.client.id} got lost`)
+        game.bootstrapSocket(socket)
+      }
+    }
+  })
+
+  socket.on('player:lost', () => {
+    console.log(`${socket.client.id} requesting bootstrap`)
+    game.bootstrapSocket(socket)
   })
 
   socket.on('game:ping', () => socket.emit('game:pong', Date.now()))

@@ -217,9 +217,7 @@ class Game {
       this.turns[turnIndex] = turn
     }
     if (turn == null) {
-      console.log(`Player sent event for turn ${turnIndex}, and only accepting events for turn ${this.lava} minimum.`)
-      this.bootstrapSocket(this.sockets[shipId])
-      return
+      throw new C.InvalidTurnError(`Player sent event for turn ${turnIndex}, and only accepting events for turn ${this.lava} minimum.`)
     }
 
     const changed = turn.addEvents(shipId, events)
