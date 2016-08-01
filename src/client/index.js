@@ -16,6 +16,7 @@ const C = require('../common/constants.js')
 const DEBUG_MODE = Boolean(localStorage.getItem('DEBUG'))
 const MUSIC_OFF = Boolean(localStorage.getItem('MUSIC_OFF'))
 
+let playing = false
 const musicTracks = [
   'POL-divide-by-zero-short.wav', // +2
   'POL-night-in-motion-short.wav', // +2
@@ -42,7 +43,6 @@ const bgMusic = new Howl({
   buffer: true,
   loop: true
 })
-bgMusic.play()
 
 const renderer = new PIXI.autoDetectRenderer(
   window.innerWidth,
@@ -203,8 +203,13 @@ socket.on('game:bootstrap', (data) => {
   myShipId = shipId
 
   // so that I don't go cray cray with the music
-  bgMusic.mute(true)
-  if (!MUSIC_OFF && (!DEBUG_MODE || shipId === 0)) bgMusic.mute(false)
+  if (MUSIC_OFF || (DEBUG_MODE && shipId !== 0)) {
+    console.log('not playing music')
+  } else if (!playing) {
+    console.log('play music')
+    playing = true
+    bgMusic.play()
+  }
 
   game = new Game(map)
   game.turns = []
