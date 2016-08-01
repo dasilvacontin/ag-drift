@@ -41,12 +41,12 @@ function resetWorld (world) {
   world.contactMaterials.length = 0
   world.time = 0.0
   world.accumulator = 0
-  world._constraintIdCounter = 0
-  world._bodyIdCounter = 0
+  world._constraintIdCounter = 0 // unused?
+  world._bodyIdCounter = 0 // unused?
 
   overlapKeeper.overlappingShapesLastState.reset()
   overlapKeeper.overlappingShapesCurrentState.reset()
-  overlapKeeper.tmpDict.reset()
+  overlapKeeper.tmpDict.reset() // accumulator
   overlapKeeper.tmpArray1.length = 0
 
   p2.Body._idCounter = 0
