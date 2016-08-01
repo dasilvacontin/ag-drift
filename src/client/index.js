@@ -253,7 +253,9 @@ socket.on('server:event', (event, turnIndex) => {
 })
 
 socket.on('player:events', (shipId, events, turnIndex) => {
-  if (shipId === myShipId) return
+  // applying own inputs since game might have been bootstrapped after
+  // client issued such commands
+  // if (shipId === myShipId) return
   if (game == null) return
   game.onPlayerEvents(shipId, events, turnIndex)
 })
