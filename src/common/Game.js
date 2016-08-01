@@ -25,6 +25,7 @@ function resetWorld (world) {
   islandManager.islands.forEach((island) => {
     islandManager.islandPool.release(island)
   })
+  islandManager.islands.length = 0
   islandManager.nodes.forEach((node) => {
     islandManager.nodePool.release(node)
   })
@@ -123,18 +124,12 @@ class Game {
 
       const { events, serverEvents } = nextTurn
 
+      // reset world and readd map bodies
       resetWorld(world)
       this.cellBodies.forEach((body) => {
-        body.id = ++p2.Body._idCounter
+        body.id = p2.Body._idCounter++
         world.addBody(body)
       })
-      /*
-      p2.Body._idCounter = 0
-      world = new p2.World({ gravity })
-      bodies = []
-      this.generateCellBodies()
-      this.cellBodies.forEach((body) => world.addBody(body))
-      */
 
       nextTurn = currentTurn.evolve(world, bodies)
       nextTurn.events = events
