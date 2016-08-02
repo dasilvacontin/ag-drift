@@ -33,7 +33,7 @@ tickAndSchedule()
 io.on('connection', function (socket) {
   console.log(`${socket.client.id} connected`)
 
-  socket.on('game:join', () => game.onPlayerJoin(socket))
+  socket.on('game:join', (debug) => game.onPlayerJoin(socket, debug))
 
   socket.on('player:events', (events, turnIndex) => {
     const shipId = game.getShipIdForSocket(socket)

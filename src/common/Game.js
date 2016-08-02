@@ -63,6 +63,7 @@ class Game {
   turns: Array<?Turn>
 
   sockets: Array<?Socket>
+  debugSockets: Array<?Socket>
   socketToShip: Object
   cellBodies: Array<p2.Body>
 
@@ -77,6 +78,7 @@ class Game {
     this.turnIndex = 0
     this.turns = [this.turn]
     this.sockets = []
+    this.debugSockets = []
     this.socketToShip = {}
 
     this.generateCellBodies()
@@ -139,14 +141,13 @@ class Game {
     }
 
     if (this.isServer) {
-      this.sockets.forEach((socket) => {
-        if (socket == null) return
-        socket.emit('game:debug', this.turn)
+      this.debugSockets.forEach((socket) => {
+        if (socket != null) socket.emit('game:debug', this.turn)
       })
     }
   }
 
-  onPlayerJoin (socket: Socket) {
+  onPlayerJoin (socket: Socket, debug: boolean = false) {
     if (!this.isServer) return
 
     const socketId = getId(socket)
@@ -162,6 +163,7 @@ class Game {
 
     this.sockets[shipId] = socket
     this.bootstrapSocket(socket)
+    if (debug) this.debugSockets.push(socket)
   }
 
   bootstrapSocket (socket: Socket) {

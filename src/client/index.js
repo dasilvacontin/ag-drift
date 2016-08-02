@@ -269,7 +269,7 @@ socket.on('game:debug', (turn) => {
 })
 
 gameLoop()
-socket.emit('game:join')
+socket.emit('game:join', DEBUG_MODE)
 
 const version = require('../package.json').version
 document.getElementById('gameVersion').innerHTML = `v${version}`
