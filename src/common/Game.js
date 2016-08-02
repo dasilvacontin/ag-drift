@@ -158,12 +158,7 @@ class Game {
       val: shipId,
       color: Math.floor(Math.random() * 0xFFFFFF)
     }
-    this.turn.addServerEvent(event)
-
-    this.sockets.forEach((socket) => {
-      if (socket == null) return
-      socket.emit('server:event', event, this.turnIndex)
-    })
+    this.onServerEvent(event, this.turnIndex)
 
     this.sockets[shipId] = socket
     this.bootstrapSocket(socket)
@@ -237,7 +232,16 @@ class Game {
     }
 
     const changed = turn.addServerEvent(event)
-    if (changed) this.resimulateFrom(turnIndex)
+    if (changed) {
+      this.resimulateFrom(turnIndex)
+
+      if (this.isServer) {
+        this.sockets.forEach((socket) => {
+          if (socket == null) return
+          socket.emit('server:event', event, turnIndex)
+        })
+      }
+    }
   }
 
   canTick () {
