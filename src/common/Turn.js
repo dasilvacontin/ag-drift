@@ -62,10 +62,37 @@ class Turn {
 
   addEvents (shipId: number, evs: Array<GameEvent>) : boolean {
     const existingEvents = this.events[shipId] || []
-    this.events[shipId] = existingEvents.concat(evs)
+    this.events[shipId] = existingEvents
 
-    // TO-DO: actually check if significant changes were made
-    return true
+    // check if new events are meaningful, and save them if so.
+    // let the caller know.
+    let changed = false
+
+    evs.forEach((ev) => {
+      let foundRelated = false
+
+      for (let i = existingEvents.length - 1; i >= 0; --i) {
+        const exEv = existingEvents[i]
+
+        if (exEv.type === ev.type) {
+          foundRelated = true
+
+          if (exEv.val !== ev.val) {
+            changed = true
+            existingEvents.push(ev)
+          }
+
+          break
+        }
+      }
+
+      if (!foundRelated) {
+        changed = true
+        existingEvents.push(ev)
+      }
+    })
+
+    return changed
   }
 
   addServerEvent (evs: GameEvent | Array<GameEvent>) : boolean {
