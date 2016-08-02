@@ -54,6 +54,17 @@ function resetWorld (world) {
 
 function getId (socket: Socket) { return socket.client.id || socket.id }
 
+function randomColor () {
+  const tri1 = Math.floor(Math.random() * 3)
+  let tri2 = tri1
+  while (tri2 === tri1) tri2 = Math.floor(Math.random() * 3)
+  const weak = Math.floor(Math.random() * (0xFF + 1))
+  const color = (0xFF << (tri1 * 8)) +
+                (weak << (tri2 * 8))
+  console.log(tri1, tri2, weak, color.toString(16))
+  return color
+}
+
 class Game {
   map: Track
   isServer: boolean
@@ -157,7 +168,7 @@ class Game {
     const event = {
       type: C.SERVER_EVENT.SPAWN_PLAYER,
       val: shipId,
-      color: Math.floor(Math.random() * 0xFFFFFF)
+      color: randomColor()
     }
     this.onServerEvent(event, this.turnIndex)
 

@@ -9,7 +9,7 @@ const constants = {
   CELL_EDGE: 10,
   HALF_EDGE: 10 / 2,
 
-  WALL_COLOR: 0x3F51B5,
+  WALL_COLOR: 0x000000,
   ROAD_COLOR: 0xAAAAFF,
 
   SERVER_EVENT: {
