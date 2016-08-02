@@ -227,10 +227,6 @@ socket.on('game:bootstrap', (data) => {
   game.lava = initialTurn
   game.resimulateFrom(initialTurn)
 
-  // TO-DO: Handle case where game controller already existed
-  // so that old sprites are removed, etc
-  // maybe create a new PIXI stage altogether?
-
   if (gameController != null) {
     camera.removeChild(gameController.stage)
   }
