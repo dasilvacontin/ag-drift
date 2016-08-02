@@ -224,7 +224,6 @@ class Game {
   }
 
   onServerEvent (event: GameEvent, turnIndex: number) {
-    if (this.isServer) return
     let turn = this.turns[turnIndex]
     if (turn == null) {
       turn = new Turn([], [], [])
