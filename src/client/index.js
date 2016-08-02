@@ -99,7 +99,9 @@ let game, gameController, myShipId
 let debugGame, debugGameController
 const oldInputs = []
 
-const meter = new FPSMeter()
+const meter = typeof FPSMeter !== 'undefined'
+  ? new FPSMeter()
+  : { tickStart: () => {}, tick: () => {} }
 function gameLoop () {
   requestAnimationFrame(gameLoop)
 
