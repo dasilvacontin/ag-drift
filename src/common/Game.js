@@ -61,7 +61,6 @@ function randomColor () {
   const weak = Math.floor(Math.random() * (0xFF + 1))
   const color = (0xFF << (tri1 * 8)) +
                 (weak << (tri2 * 8))
-  console.log(tri1, tri2, weak, color.toString(16))
   return color
 }
 
