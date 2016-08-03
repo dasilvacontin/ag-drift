@@ -242,6 +242,8 @@ socket.on('game:bootstrap', (data) => {
     debugGameController.stage.alpha = 0.5
     gameController.stage.addChild(debugGameController.stage)
   }
+
+  console.log('got bootstrapped by server')
 })
 
 socket.on('server:event', (event, turnIndex) => {
