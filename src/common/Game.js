@@ -10,7 +10,6 @@ let bodies = []
 
 function resetWorld (world) {
   const { solver, islandManager, broadphase, overlapKeeper } = world
-  delete world._listeners
 
   world.springs.length = 0
   world.bodies.length = 0
@@ -35,7 +34,7 @@ function resetWorld (world) {
   // my gravity is always the same, no need to reset
 
   broadphase.result.length = 0
-  broadphase.setWorld(world)
+  broadphase.axisList.length = 0
 
   world.constraints.length = 0
   world.contactMaterials.length = 0
