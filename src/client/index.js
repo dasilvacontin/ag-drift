@@ -195,6 +195,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     case kbd.RIGHT_ARROW:
     case kbd.UP_ARROW:
     case kbd.DOWN_ARROW:
+    case kbd.SPACE_BAR:
       e.preventDefault()
   }
 }, false)
