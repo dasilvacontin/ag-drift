@@ -135,14 +135,14 @@ class Game {
 
       const { events, serverEvents } = nextTurn
 
-      // reset world and readd map bodies
+      // reset world and re-add map bodies
       resetWorld(world)
       this.cellBodies.forEach((body) => {
         body.id = p2.Body._idCounter++
         world.addBody(body)
       })
 
-      nextTurn = currentTurn.evolve(world, bodies)
+      nextTurn = currentTurn.evolve(world, bodies, C.TIME_STEP / 1000)
       nextTurn.events = events
       nextTurn.serverEvents = serverEvents
       this.turns[i + 1] = nextTurn
@@ -271,6 +271,21 @@ class Game {
         ++this.lava
       }
     }
+
+    return this.turn
+  }
+
+  fakeTick () {
+    const dt = Date.now() - this.lastTick
+
+    // reset world and re-add map bodies
+    resetWorld(world)
+    this.cellBodies.forEach((body) => {
+      body.id = p2.Body._idCounter++
+      world.addBody(body)
+    })
+
+    return this.turn.evolve(world, bodies, dt / 1000)
   }
 }
 

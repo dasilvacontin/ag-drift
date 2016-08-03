@@ -103,7 +103,7 @@ class Turn {
     return true
   }
 
-  evolve (world: p2.World, bodies: Array<p2.Body>) {
+  evolve (world: p2.World, bodies: Array<p2.Body>, dt: number) {
     const nextInputs = []
 
     // create / remove bodies
@@ -204,7 +204,7 @@ class Turn {
       nextInputs[i] = input
     })
 
-    world.step(C.TIME_STEP / 1000)
+    world.step(dt)
 
     const nextShips = bodies.map((body, i) => {
       const ship = this.ships[i]

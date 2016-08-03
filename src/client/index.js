@@ -158,13 +158,13 @@ function gameLoop () {
     oldInputs[i] = input
   })
 
-  if (game.canTick()) {
-    // perform physics updates
-    game.tick()
+  // perform physics updates
+  const currentTurn = game.canTick()
+    ? game.tick()
+    : game.fakeTick()
 
-    // update ship sprites
-    gameController.update()
-  }
+  // update ship sprites
+  gameController.update(currentTurn)
 
   // update camera
   const [halfWidth, halfHeight] = [
@@ -265,8 +265,7 @@ socket.on('player:events', (shipId, events, turnIndex) => {
 
 socket.on('game:debug', (turn) => {
   if (!DEBUG_MODE) return
-  debugGame.turn = turn
-  debugGameController.update()
+  debugGameController.update(turn)
 })
 
 gameLoop()

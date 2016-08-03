@@ -1,6 +1,7 @@
 // @flow
 const PIXI = require('pixi.js')
 const Game = require('../common/Game.js')
+const Turn = require('../common/Turn.js')
 const ShipController = require('./ShipController.js')
 const C = require('../common/constants.js')
 
@@ -28,8 +29,8 @@ class GameController {
     })
   }
 
-  update () {
-    this.game.turn.ships.forEach((ship, i) => {
+  update (turn: Turn) {
+    turn.ships.forEach((ship, i) => {
       if (ship == null) return
 
       let shipController = this.ships[i]
