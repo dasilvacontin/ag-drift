@@ -71,9 +71,12 @@ if (TELEGRAM_TOKEN != null) {
 }
 
 function beforeExit () {
+  console.log('beforeExit')
   if (TELEGRAM_TOKEN == null) return
   console.log('sending reb00t notification via telegram')
   bot.sendMessage(TELEGRAM_CHAT_ID, 'reb00ting')
+  .then(function () { console.log(arguments) })
+  .catch(function () { console.log(arguments) })
 }
 process.on('beforeExit', beforeExit)
 
@@ -82,7 +85,7 @@ process.on('SIGTERM', () => {
   clearTimeout(timerId)
   http.close((err) => {
     if (err) throw err
-    console.log('gracefully exiting')
+    console.log('closed server')
     beforeExit()
   })
 })
