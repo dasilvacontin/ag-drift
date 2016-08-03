@@ -121,7 +121,11 @@ class Turn {
             fixedRotation: true
           })
 
-          const shape = new p2.Box({ width: 2, height: 2 })
+          const shape = new p2.Box({
+            width: 2,
+            height: 2,
+            material: C.SHIP_MTRL
+          })
           body.addShape(shape)
           bodies[i] = body
         } else {
@@ -145,7 +149,11 @@ class Turn {
           })
           bodies[shipId] = body
 
-          const shape = new p2.Box({ width: 2, height: 2 })
+          const shape = new p2.Box({
+            width: 2,
+            height: 2,
+            material: C.SHIP_MTRL
+          })
           body.addShape(shape)
           world.addBody(body)
 

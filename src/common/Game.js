@@ -13,6 +13,7 @@ function resetWorld (world) {
 
   world.springs.length = 0
   world.bodies.length = 0
+  world.contactMaterials.length = 0
   world.disabledBodyCollisionPairs.length = 0
 
   solver.removeAllEquations()
@@ -49,6 +50,8 @@ function resetWorld (world) {
   overlapKeeper.tmpArray1.length = 0
 
   p2.Body._idCounter = 0
+  world.addContactMaterial(C.SHIP_VS_WALL_CONTACT_MTRL)
+  world.addContactMaterial(C.SHIP_VS_SHIP_CONTACT_MTRL)
 }
 
 function getId (socket: Socket) { return socket.client.id || socket.id }
@@ -104,7 +107,8 @@ class Game {
         if (cell === 1) {
           const cellShape = new p2.Box({
             width: C.CELL_EDGE,
-            height: C.CELL_EDGE
+            height: C.CELL_EDGE,
+            material: C.WALL_MTRL
           })
           const cellBody = new p2.Body({
             mass: 0,

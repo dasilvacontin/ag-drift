@@ -1,4 +1,5 @@
 // @flow
+const p2 = require('p2')
 const subError = require('subclass-error')
 
 const constants = {
@@ -25,8 +26,31 @@ const constants = {
     LEAN_R: 'leanR'
   },
 
-  InvalidTurnError: subError('InvalidTurnError')
+  InvalidTurnError: subError('InvalidTurnError'),
+
+  SHIP_MTRL: new p2.Material(),
+  WALL_MTRL: new p2.Material(),
+  SHIP_VS_WALL_CONTACT_MTRL: null,
+  SHIP_VS_SHIP_CONTACT_MTRL: null
 }
+
+constants.SHIP_VS_WALL_CONTACT_MTRL = new p2.ContactMaterial(
+  constants.SHIP_MTRL,
+  constants.WALL_MTRL,
+  {
+    restitution: 0.5,
+    stiffness: Number.MAX_VALUE
+  }
+)
+
+constants.SHIP_VS_SHIP_CONTACT_MTRL = new p2.ContactMaterial(
+  constants.SHIP_MTRL,
+  constants.SHIP_MTRL,
+  {
+    restitution: 1.0,
+    stiffness: Number.MAX_VALUE
+  }
+)
 
 constants.TIME_STEP = 1000 / 60
 constants.TURN_MAX_DELAY = Math.ceil(500 / constants.TIME_STEP)
