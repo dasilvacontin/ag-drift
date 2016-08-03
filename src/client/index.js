@@ -92,6 +92,9 @@ socket.on('game:pong', (serverNow) => {
   C.CLIENT_LEAD = Date.now() - (serverNow + ping)
   setTimeout(sendPing, 500)
 })
+setInterval(() => {
+  console.log({ ping, clientLead: C.CLIENT_LEAD })
+}, 5 * 1000)
 
 let game, gameController, myShipId
 let debugGame, debugGameController
