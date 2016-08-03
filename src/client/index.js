@@ -31,7 +31,7 @@ const musicTracks = [
 ]
 function getRandomMusicTrack () {
   // night in motion is bae
-  const index = localStorage.getItem('trackIndex') || 1
+  const index = Number(localStorage.getItem('trackIndex') || 1)
   const track = musicTracks[index]
   console.log(track)
   return 'sounds/' + track
