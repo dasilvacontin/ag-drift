@@ -4,6 +4,7 @@ const http = require('http').Server(app)
 const io = require('socket.io')(http)
 const path = require('path')
 const ip = require('ip')
+const TelegramBot = require('node-telegram-bot-api')
 
 const Game = require('../common/Game.js')
 const C = require('../common/constants.js')
@@ -63,15 +64,18 @@ http.listen(PORT, function () {
 })
 
 const { TELEGRAM_TOKEN, TELEGRAM_CHAT_ID } = process.env
-if (TELEGRAM_TOKEN) {
-  const TelegramBot = require('node-telegram-bot-api')
-  const bot = new TelegramBot(TELEGRAM_TOKEN)
+let bot
+if (TELEGRAM_TOKEN != null) {
+  bot = new TelegramBot(TELEGRAM_TOKEN)
   bot.sendMessage(TELEGRAM_CHAT_ID, 'server up! beep boop')
-  process.on('beforeExit', () => {
-    console.log('sending reb00t notification via telegram')
-    bot.sendMessage(TELEGRAM_CHAT_ID, 'reb00ting')
-  })
 }
+
+function beforeExit () {
+  if (TELEGRAM_TOKEN == null) return
+  console.log('sending reb00t notification via telegram')
+  bot.sendMessage(TELEGRAM_CHAT_ID, 'reb00ting')
+}
+process.on('beforeExit', beforeExit)
 
 process.on('SIGTERM', () => {
   console.log('got SIGTERM')
@@ -79,6 +83,6 @@ process.on('SIGTERM', () => {
   http.close((err) => {
     if (err) throw err
     console.log('gracefully exiting')
-    process.exit(0)
+    beforeExit()
   })
 })
