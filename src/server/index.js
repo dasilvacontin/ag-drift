@@ -60,3 +60,11 @@ const PORT = process.env.PORT || 3000
 http.listen(PORT, function () {
   console.log(`listening on ${ip.address()}:${PORT}`)
 })
+
+const { TELEGRAM_TOKEN, TELEGRAM_CHAT_ID } = process.env
+if (TELEGRAM_TOKEN) {
+  const TelegramBot = require('node-telegram-bot-api')
+  const bot = new TelegramBot(TELEGRAM_TOKEN)
+  bot.sendMessage(TELEGRAM_CHAT_ID, 'server up! beep boop')
+  process.on('exit', () => { bot.sendMessage(TELEGRAM_CHAT_ID, 'reb00ting') })
+}
