@@ -24,9 +24,10 @@ const map = [
 ].map((row) => row.split('').map(Number))
 
 const game = new Game(map, true)
+let timerId
 function tickAndSchedule () {
   game.tick()
-  setTimeout(tickAndSchedule, Date.now() + C.TIME_STEP - game.lastTick)
+  timerId = setTimeout(tickAndSchedule, Date.now() + C.TIME_STEP - game.lastTick)
 }
 tickAndSchedule()
 
@@ -74,7 +75,9 @@ if (TELEGRAM_TOKEN) {
 
 process.on('SIGTERM', () => {
   console.log('got SIGTERM')
-  http.close(() => {
+  clearTimeout(timerId)
+  http.close((err) => {
+    if (err) throw err
     console.log('gracefully exiting')
     process.exit(0)
   })
