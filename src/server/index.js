@@ -68,3 +68,7 @@ if (TELEGRAM_TOKEN) {
   bot.sendMessage(TELEGRAM_CHAT_ID, 'server up! beep boop')
   process.on('exit', () => { bot.sendMessage(TELEGRAM_CHAT_ID, 'reb00ting') })
 }
+
+process.on('SIGTERM', () => {
+  http.close(() => { process.exit(0) })
+})
