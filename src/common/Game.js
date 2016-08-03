@@ -280,7 +280,10 @@ class Game {
   }
 
   fakeTick () {
-    const dt = Date.now() - this.lastTick
+    const dt = Math.max(
+      0,
+      Date.now() - (this.lastTick + C.CLIENT_LEAD)
+    )
 
     // reset world and re-add map bodies
     resetWorld(world)
