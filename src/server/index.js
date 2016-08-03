@@ -66,9 +66,16 @@ if (TELEGRAM_TOKEN) {
   const TelegramBot = require('node-telegram-bot-api')
   const bot = new TelegramBot(TELEGRAM_TOKEN)
   bot.sendMessage(TELEGRAM_CHAT_ID, 'server up! beep boop')
-  process.on('exit', () => { bot.sendMessage(TELEGRAM_CHAT_ID, 'reb00ting') })
+  process.on('beforeExit', () => {
+    console.log('sending reb00t notification via telegram')
+    bot.sendMessage(TELEGRAM_CHAT_ID, 'reb00ting')
+  })
 }
 
 process.on('SIGTERM', () => {
-  http.close(() => { process.exit(0) })
+  console.log('got SIGTERM')
+  http.close(() => {
+    console.log('gracefully exiting')
+    process.exit(0)
+  })
 })
