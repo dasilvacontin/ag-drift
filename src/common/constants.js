@@ -3,7 +3,7 @@ const p2 = require('p2')
 const subError = require('subclass-error')
 
 const constants = {
-  TURN_MAX_DELAY: 30, // 500ms at 1/60 steps per s
+  TURN_MAX_DELAY: Math.floor(1000 / 60), // quantity of turns stored in server
   TIME_STEP: 1000 / 60,
   CLIENT_LEAD: 0,
   FORCE: 300,
