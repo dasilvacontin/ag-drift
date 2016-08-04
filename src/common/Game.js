@@ -285,6 +285,7 @@ class Game {
       Date.now() - (this.lastTick + C.CLIENT_LEAD)
     )
     dt = Math.min(dt, C.TIME_STEP - 1)
+    console.log(`fake tick of ${dt}ms`)
 
     // reset world and re-add map bodies
     resetWorld(world)
