@@ -100,6 +100,8 @@ let game, gameController, myShipId
 let debugGame, debugGameController
 const oldInputs = []
 
+const getGamepads = navigator.getGamepads || (() => [])
+
 const meter = typeof FPSMeter !== 'undefined'
   ? new FPSMeter()
   : { tickStart: () => {}, tick: () => {} }
@@ -110,7 +112,7 @@ function gameLoop () {
   meter.tickStart()
 
   // get inputs for this turn
-  let gamepads = navigator.getGamepads() || []
+  let gamepads = getGamepads.apply(navigator)
   game.turn.ships.forEach((ship, i) => {
     if (ship == null || i !== myShipId) return
 
