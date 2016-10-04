@@ -5,9 +5,15 @@ const io = require('socket.io')(http)
 const path = require('path')
 const ip = require('ip')
 const TelegramBot = require('node-telegram-bot-api')
+const { TELEGRAM_TOKEN, TELEGRAM_CHAT_ID } = process.env
 
 const Game = require('../common/Game.js')
 const C = require('../common/constants.js')
+
+let bot
+if (TELEGRAM_TOKEN != null) {
+  bot = new TelegramBot(TELEGRAM_TOKEN)
+}
 
 app.use(express.static('public'))
 app.get('/', function (req, res) {
@@ -32,8 +38,14 @@ function tickAndSchedule () {
 }
 tickAndSchedule()
 
+let firstPlayer = true
 io.on('connection', function (socket) {
   console.log(`${socket.client.id} connected`)
+
+  if (bot && firstPlayer) {
+    bot.sendMessage(TELEGRAM_CHAT_ID, 'server up - player connected! beep boop')
+  }
+  firstPlayer = false
 
   socket.on('game:join', (debug) => game.onPlayerJoin(socket, debug))
 
@@ -62,13 +74,6 @@ const PORT = process.env.PORT || 3000
 http.listen(PORT, function () {
   console.log(`listening on ${ip.address()}:${PORT}`)
 })
-
-const { TELEGRAM_TOKEN, TELEGRAM_CHAT_ID } = process.env
-let bot
-if (TELEGRAM_TOKEN != null) {
-  bot = new TelegramBot(TELEGRAM_TOKEN)
-  bot.sendMessage(TELEGRAM_CHAT_ID, 'server up! beep boop')
-}
 
 function beforeExit () {
   console.log('beforeExit')
