@@ -21,14 +21,14 @@ app.get('/', function (req, res) {
 })
 
 const map = [
-  '111111111111111',
-  '100001110000001',
-  '101000000111001',
-  '101111111111101',
-  '101111111111001',
-  '100000000000001',
-  '111111111111111'
-].map((row) => row.split('').map(Number))
+  '###############',
+  '# 5  ###  3   #',
+  '# #   4  ### 2#',
+  '#6########### #',
+  '# ########## 1#',
+  '# 7   8  9    #',
+  '###############'
+].map((row) => row.split(''))
 
 const game = new Game(map, true)
 let timerId
@@ -47,7 +47,14 @@ io.on('connection', function (socket) {
   }
   firstPlayer = false
 
-  socket.on('game:join', (debug) => game.onPlayerJoin(socket, debug))
+  socket.on('game:join', (username, debug) => {
+    if (typeof username !== 'string' || username.length === 0) {
+      username = 'Anonymous'
+    }
+    debug = Boolean(debug)
+
+    game.onPlayerJoin(socket, username, debug)
+  })
 
   socket.on('player:events', (events, turnIndex) => {
     const shipId = game.getShipIdForSocket(socket)
@@ -70,7 +77,7 @@ io.on('connection', function (socket) {
   socket.on('game:ping', () => socket.emit('game:pong', Date.now()))
 })
 
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3
 http.listen(PORT, function () {
   console.log(`listening on ${ip.address()}:${PORT}`)
 })
@@ -78,8 +85,8 @@ http.listen(PORT, function () {
 function beforeExit () {
   console.log('beforeExit')
   if (TELEGRAM_TOKEN == null) return
-  console.log('sending reb00t notification via telegram')
-  bot.sendMessage(TELEGRAM_CHAT_ID, 'reb00ting')
+  console.log('sending reb  t notification via telegram')
+  bot.sendMessage(TELEGRAM_CHAT_ID, 'reb  ting')
   .then(function () { console.log(arguments) })
   .catch(function () { console.log(arguments) })
 }

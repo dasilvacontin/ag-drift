@@ -104,7 +104,7 @@ class Game {
     this.map.forEach((row, i) => {
       row.forEach((cell, j) => {
         // if it's a wall, add a collider
-        if (cell === 1) {
+        if (cell === C.WALL) {
           const cellShape = new p2.Box({
             width: C.CELL_EDGE,
             height: C.CELL_EDGE,
@@ -146,7 +146,7 @@ class Game {
         world.addBody(body)
       })
 
-      nextTurn = currentTurn.evolve(world, bodies, C.TIME_STEP / 1000)
+      nextTurn = currentTurn.evolve(this.map, world, bodies, C.TIME_STEP / 1000)
       nextTurn.events = events
       nextTurn.serverEvents = serverEvents
       this.turns[i + 1] = nextTurn
@@ -160,7 +160,7 @@ class Game {
     }
   }
 
-  onPlayerJoin (socket: Socket, debug: boolean = false) {
+  onPlayerJoin (socket: Socket, username: string, debug: boolean = false) {
     if (!this.isServer) return
 
     const socketId = getId(socket)
@@ -170,6 +170,7 @@ class Game {
     const event = {
       type: C.SERVER_EVENT.SPAWN_PLAYER,
       val: shipId,
+      username,
       color: randomColor()
     }
     this.onServerEvent(event, this.turnIndex)
@@ -296,7 +297,7 @@ class Game {
       world.addBody(body)
     })
 
-    return this.turn.evolve(world, bodies, dt / 1000)
+    return this.turn.evolve(this.map, world, bodies, dt / 1000)
   }
 }
 

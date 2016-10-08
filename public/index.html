@@ -15,6 +15,19 @@
     }
     a:hover { color: cyan }
 
+    #leaderboard {
+      position: fixed;
+      top: 0;
+      left: 0;
+      margin: 25px;
+      padding: 5px;
+
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 14px;
+      background: rgba(0, 0, 0, .85);
+    }
+
     #help {
       position: fixed;
       bottom: 0;
@@ -53,6 +66,8 @@
 <body>
   <script src='https://cdnjs.cloudflare.com/ajax/libs/fpsmeter/0.3.1/fpsmeter.min.js' type='text/javascript'></script>
   </script>
+
+  <div id="leaderboard"></div>
 
   <div id="help">
     <ul>

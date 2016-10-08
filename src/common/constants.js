@@ -10,6 +10,7 @@ const constants = {
   CELL_EDGE: 10,
   HALF_EDGE: 10 / 2,
 
+  WALL: '#',
   WALL_COLOR: 0x000000,
   ROAD_COLOR: 0xAAAAFF,
 

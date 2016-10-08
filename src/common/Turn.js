@@ -103,7 +103,7 @@ class Turn {
     return true
   }
 
-  evolve (world: p2.World, bodies: Array<p2.Body>, dt: number) {
+  evolve (map: Track, world: p2.World, bodies: Array<p2.Body>, dt: number) {
     const nextInputs = []
 
     // create / remove bodies
@@ -161,8 +161,11 @@ class Turn {
             position: vec2.clone(body.position),
             velocity: vec2.clone(body.velocity),
             angle: body.angle,
+            username: sev.username,
             color: sev.color,
-            input: new PlayerInput()
+            input: new PlayerInput(),
+            checkpoint: 1000,
+            lap: 0
           })
           this.ships[shipId] = ship
 
@@ -218,12 +221,33 @@ class Turn {
       const ship = this.ships[i]
       if (!ship) return
 
+      const ci = Math.floor((body.position[1] + C.CELL_EDGE / 2) / C.CELL_EDGE)
+      const cj = Math.floor((body.position[0] + C.CELL_EDGE / 2) / C.CELL_EDGE)
+
+      const oldCheckpoint = ship.checkpoint
+      const cell = map[ci][cj]
+      let checkpoint = cell === ' ' ? NaN : Number(map[ci][cj])
+      let lap = ship.lap
+
+      if (Math.random() < 0.1) {
+        console.log(`ci: ${ci}, cj: ${cj}, oldC: ${oldCheckpoint}, c: ${checkpoint}`)
+      }
+
+      if (isNaN(checkpoint)) checkpoint = oldCheckpoint
+      else if (checkpoint !== oldCheckpoint) {
+        console.log('checkpoint', checkpoint)
+        if (checkpoint > oldCheckpoint + 1) lap++
+      }
+
       return new Ship({
         position: vec2.clone(body.position),
         velocity: vec2.clone(body.velocity),
         angle: body.angle,
+        username: ship.username,
         color: ship.color,
-        input: nextInputs[i]
+        input: nextInputs[i],
+        checkpoint,
+        lap
       })
     })
 

@@ -102,7 +102,7 @@ const oldInputs = []
 
 const getGamepads = navigator.getGamepads || (() => [])
 
-const meter = typeof FPSMeter !== 'undefined'
+const meter = typeof FPSMeter !== 'undefined' && DEBUG_MODE
   ? new FPSMeter()
   : { tickStart: () => {}, tick: () => {} }
 function gameLoop () {
@@ -188,7 +188,60 @@ function gameLoop () {
     camera.rotation += (-player.sprite.rotation - camera.rotation) / 15
   }
   renderer.render(camera)
+  renderLeaderboard()
   meter.tick()
+}
+
+function repeat (char, times) {
+  if (char === ' ') char = '&nbsp;'
+  return Array(times + 1).join(char)
+}
+
+function numberToHexColor (color: number) {
+  let hexcolor = color.toString(16)
+  return `#${repeat('0', 6 - hexcolor.length)}${hexcolor}`
+}
+
+function filterNulls<T> (arr: Array<?T>) : Array<T> {
+  const result = []
+  arr.forEach((elem) => {
+    if (elem != null) result.push(elem)
+  })
+  return result
+}
+
+const leaderboard = document.getElementById('leaderboard')
+function renderLeaderboard () {
+  const ships: Array<Ship> = filterNulls(game.turn.ships)
+  ships.sort((a: Ship, b: Ship) => {
+    if (a.lap > b.lap) return -1
+    else if (b.lap > a.lap) return 1
+
+    return a.checkpoint - b.checkpoint
+  })
+  const maxUsernameLength = ships.reduce((max, ship) => {
+    if (ship == null) return max
+    return Math.max(max, ship.username.length)
+  }, 0)
+
+  let title = 'Username'
+  let leaderboardContent = `| ${title}${repeat(' ', maxUsernameLength - title.length)} | `
+
+  title = 'Laps'
+  leaderboardContent += `${title} |<br>`
+
+  leaderboardContent += `| ${repeat('-', maxUsernameLength)} | ${repeat('-', title.length)} |<br>`
+
+  ships.forEach((ship) => {
+    if (ship == null) return
+    const { color, username } = ship
+    const lap = String(ship.lap)
+    leaderboardContent += `| <span style="color: ${numberToHexColor(color)}">${username}</span>${repeat(' ', maxUsernameLength - username.length)} | ${repeat(' ', title.length - lap.length)}${lap} |<br>`
+  })
+
+  if (leaderboard.innerHTML !== leaderboardContent) {
+    leaderboard.innerHTML = leaderboardContent
+  }
 }
 
 // avoid moving the page around
@@ -249,6 +302,12 @@ socket.on('game:bootstrap', (data) => {
   }
 
   console.log('got bootstrapped by server')
+  setTimeout(function () {
+    const myShip = game.turn.ships[myShipId]
+    if (myShip != null) {
+      leaderboard.style.boxShadow = `${numberToHexColor(myShip.color)} 2px 2px`
+    }
+  }, 0)
 })
 
 socket.on('server:event', (event, turnIndex) => {
@@ -276,7 +335,11 @@ socket.on('game:debug', (turn) => {
 })
 
 gameLoop()
-socket.emit('game:join', DEBUG_MODE)
+
+const username = localStorage.getItem('username') || prompt('Username:')
+localStorage.setItem('username', username)
+
+socket.emit('game:join', username, DEBUG_MODE)
 
 const version = require('../package.json').version
 document.getElementById('gameVersion').innerHTML = `v${version}`
