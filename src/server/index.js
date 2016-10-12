@@ -50,7 +50,7 @@ io.on('connection', function (socket) {
 
     // send telegram notification on first user join
     if (bot && firstPlayer) {
-      bot.sendMessage(TELEGRAM_CHAT_ID, 'server up - player joined game! beep boop')
+      bot.sendMessage(TELEGRAM_CHAT_ID, `server up - ${username} joined game! beep boop`)
     }
     firstPlayer = false
 
