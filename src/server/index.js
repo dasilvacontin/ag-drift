@@ -43,7 +43,7 @@ io.on('connection', function (socket) {
   console.log(`${socket.client.id} connected`)
 
   socket.on('game:join', (username, debug) => {
-    if (typeof username !== 'string' || username.length === 0) {
+    if (typeof username !== 'string' || username.trim().length === 0) {
       username = 'Anonymous'
     }
     debug = Boolean(debug)
