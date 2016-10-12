@@ -42,7 +42,6 @@ let firstPlayer = true
 io.on('connection', function (socket) {
   console.log(`${socket.client.id} connected`)
 
-
   socket.on('game:join', (username, debug) => {
     if (typeof username !== 'string' || username.length === 0) {
       username = 'Anonymous'
