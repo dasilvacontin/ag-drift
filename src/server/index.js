@@ -42,16 +42,18 @@ let firstPlayer = true
 io.on('connection', function (socket) {
   console.log(`${socket.client.id} connected`)
 
-  if (bot && firstPlayer) {
-    bot.sendMessage(TELEGRAM_CHAT_ID, 'server up - player connected! beep boop')
-  }
-  firstPlayer = false
 
   socket.on('game:join', (username, debug) => {
     if (typeof username !== 'string' || username.length === 0) {
       username = 'Anonymous'
     }
     debug = Boolean(debug)
+
+    // send telegram notification on first user join
+    if (bot && firstPlayer) {
+      bot.sendMessage(TELEGRAM_CHAT_ID, 'server up - player joined game! beep boop')
+    }
+    firstPlayer = false
 
     game.onPlayerJoin(socket, username, debug)
   })
