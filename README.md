@@ -1,4 +1,4 @@
-![early screenshot](screenshot.png)
+<img src="https://media.giphy.com/media/u2h0Z3SKX16Ny/giphy.gif" width="100%"></img>
 
 ag-drift
 ========
