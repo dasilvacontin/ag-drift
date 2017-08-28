@@ -13,3 +13,4 @@ coverage
 
 # Other
 .DS_Store
+.vscode
