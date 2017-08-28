@@ -164,7 +164,7 @@ class Turn {
             username: sev.username,
             color: sev.color,
             input: new PlayerInput(),
-            checkpoint: 1000,
+            checkpoint: 1,
             lap: 0
           })
           this.ships[shipId] = ship
@@ -226,17 +226,28 @@ class Turn {
 
       const oldCheckpoint = ship.checkpoint
       const cell = map[ci][cj]
-      let checkpoint = cell === ' ' ? NaN : Number(map[ci][cj])
       let lap = ship.lap
 
-      if (Math.random() < 0.1) {
-        console.log(`ci: ${ci}, cj: ${cj}, oldC: ${oldCheckpoint}, c: ${checkpoint}`)
-      }
-
+      // obtain current checkpoint
+      let checkpoint = (cell === ' ' ? NaN : Number(map[ci][cj]))
       if (isNaN(checkpoint)) checkpoint = oldCheckpoint
-      else if (checkpoint !== oldCheckpoint) {
-        console.log('checkpoint', checkpoint)
-        if (checkpoint > oldCheckpoint + 1) lap++
+
+      // detect checkpoint change
+      // checkpoint number is descending, lap is indicated as a
+      // jump from low number to high number
+      if (checkpoint !== oldCheckpoint) {
+        if (checkpoint == oldCheckpoint - 1) {
+          // cool, progressing
+        } else if (checkpoint == oldCheckpoint + 1) {
+          // going backwards
+        } else if (checkpoint > oldCheckpoint + 1) {
+          // number jump indicates going from last checkpoint to
+          // first checkpoint, i.e. crossed finish line
+          lap++
+        } else if (checkpoint < oldCheckpoint - 1) {
+          // going backwards and crossed finish line
+          lap--
+        }
       }
 
       return new Ship({
