@@ -11,6 +11,8 @@ class Ship {
   input: PlayerInput
   checkpoint: number
   lap: number
+  currentLaptime: number
+  laptimes: Array<number>
 
   constructor ({
     position,
@@ -20,7 +22,9 @@ class Ship {
     color,
     input,
     checkpoint,
-    lap
+    lap,
+    currentLaptime,
+    laptimes
   } : {
     position: vec2,
     velocity: vec2,
@@ -29,7 +33,9 @@ class Ship {
     color: number,
     input: PlayerInput,
     checkpoint: number,
-    lap: number
+    lap: number,
+    currentLaptime: number,
+    laptimes: Array<number>
   }) {
     this.position = position
     this.velocity = velocity
@@ -39,6 +45,8 @@ class Ship {
     this.input = input
     this.checkpoint = checkpoint
     this.lap = lap
+    this.currentLaptime = currentLaptime
+    this.laptimes = laptimes
   }
 }
 

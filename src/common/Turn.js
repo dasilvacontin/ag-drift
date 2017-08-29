@@ -165,7 +165,9 @@ class Turn {
             color: sev.color,
             input: new PlayerInput(),
             checkpoint: 1,
-            lap: 0
+            lap: 0,
+            currentLaptime: 0,
+            laptimes: [Infinity]
           })
           this.ships[shipId] = ship
 
@@ -190,24 +192,30 @@ class Turn {
       const input = new PlayerInput(ship.input)
       input.turnL = false
       input.turnR = false
-      playerEvents.forEach(input.applyPlayerEvent, input)
 
-      // turn left
-      if (input.turnL) body.angle += -Math.PI / 2
+      const finishedRace = (ship.lap > C.MAX_LAPS)
+      if (!finishedRace) {
+        // only apply inputs if still racing
+        // otherwise vfx for the boosters will show
+        playerEvents.forEach(input.applyPlayerEvent, input)
 
-      // turn right
-      if (input.turnR) body.angle += Math.PI / 2
+        // turn left
+        if (input.turnL) body.angle += -Math.PI / 2
 
-      // main thruster force
-      let boost = 0
-      if (input.gas) boost = input.boost ? 2 : 1
-      body.applyForceLocal([0, -C.FORCE * boost])
+        // turn right
+        if (input.turnR) body.angle += Math.PI / 2
 
-      // leaning right by engaging left thruster
-      if (input.leanR) body.applyForceLocal([C.FORCE, 0])
+        // main thruster force
+        let boost = 0
+        if (input.gas) boost = input.boost ? 2 : 1
+        body.applyForceLocal([0, -C.FORCE * boost])
 
-      // leaning left by engaging right thruster
-      if (input.leanL) body.applyForceLocal([-C.FORCE, 0])
+        // leaning right by engaging left thruster
+        if (input.leanR) body.applyForceLocal([C.FORCE, 0])
+
+        // leaning left by engaging right thruster
+        if (input.leanL) body.applyForceLocal([-C.FORCE, 0])
+      }
 
       // air drag
       vec2.scale(body.velocity, body.velocity, 0.99)
@@ -215,7 +223,7 @@ class Turn {
       nextInputs[i] = input
     })
 
-    world.step(dt)
+    world.step(dt / 1000)
 
     const nextShips = bodies.map((body, i) => {
       const ship = this.ships[i]
@@ -227,23 +235,43 @@ class Turn {
       const oldCheckpoint = ship.checkpoint
       const cell = map[ci][cj]
       let lap = ship.lap
+      let finishedRace = (lap > C.MAX_LAPS)
 
       // obtain current checkpoint
       let checkpoint = (cell === ' ' ? NaN : Number(map[ci][cj]))
       if (isNaN(checkpoint)) checkpoint = oldCheckpoint
 
+      // local vars to calc temp store new values
+      let currentLaptime = ship.currentLaptime
+      let laptimes = Array.from(ship.laptimes)
+
+      // increase current lap's time
+      if (!finishedRace) laptimes[currentLaptime] += (dt / 1000)
+
       // detect checkpoint change
       // checkpoint number is descending, lap is indicated as a
       // jump from low number to high number
       if (checkpoint !== oldCheckpoint) {
-        if (checkpoint == oldCheckpoint - 1) {
+        if (checkpoint === oldCheckpoint - 1) {
           // cool, progressing
-        } else if (checkpoint == oldCheckpoint + 1) {
+        } else if (checkpoint === oldCheckpoint + 1) {
           // going backwards
         } else if (checkpoint > oldCheckpoint + 1) {
           // number jump indicates going from last checkpoint to
           // first checkpoint, i.e. crossed finish line
           lap++
+
+          // complete laptime if it applies
+          if (lap > currentLaptime) {
+            currentLaptime = lap
+            laptimes.push(0)
+          }
+
+          finishedRace = (lap > C.MAX_LAPS)
+          if (finishedRace) {
+            // shut down engines before we stop processing player input
+            nextInputs[i] = new PlayerInput()
+          }
         } else if (checkpoint < oldCheckpoint - 1) {
           // going backwards and crossed finish line
           lap--
@@ -258,7 +286,9 @@ class Turn {
         color: ship.color,
         input: nextInputs[i],
         checkpoint,
-        lap
+        lap,
+        currentLaptime,
+        laptimes
       })
     })
 

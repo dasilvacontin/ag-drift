@@ -228,20 +228,51 @@ function renderLeaderboard () {
   let leaderboardContent = `| ${title}${repeat(' ', maxUsernameLength - title.length)} | `
 
   title = 'Laps'
-  leaderboardContent += `${title} |<br>`
+  leaderboardContent += `${title} | `
 
-  leaderboardContent += `| ${repeat('-', maxUsernameLength)} | ${repeat('-', title.length)} |<br>`
+  title = 'Time'
+  const timeLength = '0:00.000'.length
+  leaderboardContent += `${title}${repeat(' ', timeLength - title.length)} | `
+
+  title = 'Best lap'
+  leaderboardContent += `${title}${repeat(' ', timeLength - title.length)} |<br>`
+
+  leaderboardContent += `| ${repeat('-', maxUsernameLength)} | ${repeat('-', 'Laps'.length)} | ${repeat('-', timeLength)} | ${repeat('-', timeLength)} |<br>`
 
   ships.forEach((ship) => {
     if (ship == null) return
     const { color, username } = ship
     const lap = String(ship.lap)
-    leaderboardContent += `| <span style="color: ${numberToHexColor(color)}">${username}</span>${repeat(' ', maxUsernameLength - username.length)} | ${repeat(' ', title.length - lap.length)}${lap} |<br>`
+
+    // time stuff
+    const totalTime = ship.laptimes.reduce((prev, curr, i) =>
+      // lap 0 (before initially crossing the finish line) doesn't count
+      prev + (i > 0 ? curr : 0)
+    , 0)
+    let bestLap = ship.laptimes.reduce((prev, curr, i, arr) => {
+      if (i === arr.length - 1) return prev // ignore current lap
+      return Math.min(prev, curr)
+    }, Infinity)
+    bestLap = (bestLap === Infinity ? repeat(' ', timeLength) : timeToString(bestLap))
+
+    leaderboardContent += `| <span style="color: ${numberToHexColor(color)}">${username}</span>${repeat(' ', maxUsernameLength - username.length)} | ${repeat(' ', 'Laps'.length - lap.length)}${lap} | ${timeToString(totalTime)} | ${bestLap} |<br>`
   })
 
   if (leaderboard.innerHTML !== leaderboardContent) {
     leaderboard.innerHTML = leaderboardContent
   }
+}
+
+function timeToString (time) {
+  let minutes = Math.floor(time / 60)
+  minutes = (minutes > 10 ? '+' : minutes)
+  let seconds = time % 60
+  let decimals = Math.floor((seconds * 1000) % 1000)
+  seconds = Math.floor(seconds)
+  seconds = (seconds < 10 ? '0' : '') + seconds
+  decimals = String(decimals)
+  decimals = `${repeat('0', 3 - decimals.length)}${decimals}`
+  return `${minutes}:${seconds}.${decimals}`
 }
 
 // avoid moving the page around

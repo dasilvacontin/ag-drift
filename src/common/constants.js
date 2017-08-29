@@ -14,6 +14,8 @@ const constants = {
   WALL_COLOR: 0x000000,
   ROAD_COLOR: 0xAAAAFF,
 
+  MAX_LAPS: 5,
+
   SERVER_EVENT: {
     SPAWN_PLAYER: 'spawnPlayer'
   },
