@@ -93,7 +93,7 @@ io.on('connection', function (socket) {
   socket.on('game:ping', () => socket.emit('game:pong', Date.now()))
 })
 
-const PORT = process.env.PORT || 3
+const PORT = process.env.PORT || 3000
 http.listen(PORT, function () {
   console.log(`listening on ${ip.address()}:${PORT}`)
 })
