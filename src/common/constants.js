@@ -16,6 +16,13 @@ const constants = {
 
   MAX_LAPS: 5,
 
+  GAME_STATE: {
+    COUNTDOWN: 'gameCountdown',
+    IN_PROGRESS: 'gameInProgress',
+    FINISH_COUNTDOWN: 'gameFinishCountdown',
+    RESULTS_SCREEN: 'gameResultsScreen'
+  },
+
   SERVER_EVENT: {
     SPAWN_PLAYER: 'spawnPlayer',
     DESTROY_PLAYER: 'destroyPlayer'

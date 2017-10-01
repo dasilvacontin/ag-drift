@@ -37,15 +37,21 @@ class Turn {
   ships: Array<?Ship>
   events: Array<?Array<GameEvent>>
   serverEvents: Array<Object>
+  state: string
+  counter: number
 
   constructor (
     ships: Array<?Ship>,
     events: Array<?Array<GameEvent>>,
-    serverEvents: Array<Object>
+    serverEvents: Array<Object>,
+    state: string = C.GAME_STATE.IN_PROGRESS,
+    counter: number = 0
   ) {
     this.ships = ships
     this.events = events
     this.serverEvents = serverEvents
+    this.state = state
+    this.counter = counter
   }
 
   getFreeShipSlot () : number {
@@ -232,6 +238,8 @@ class Turn {
 
     world.step(dt / 1000)
 
+    let {state, counter} = this
+
     const nextShips = bodies.map((body, i) => {
       const ship = ships[i]
       if (!ship) return
@@ -274,7 +282,13 @@ class Turn {
             laptimes.push(0)
           }
 
-          finishedRace = (lap > C.MAX_LAPS)
+          if (!finishedRace && lap > C.MAX_LAPS) {
+            finishedRace = true
+            if (state === C.GAME_STATE.IN_PROGRESS) {
+              state = C.GAME_STATE.FINISH_COUNTDOWN
+              counter = 15 * 1000 / C.TIME_STEP
+            }
+          }
           if (finishedRace) {
             // shut down engines before we stop processing player input
             ship.input = new PlayerInput()
@@ -300,7 +314,29 @@ class Turn {
       })
     })
 
-    const nextTurn = new Turn(nextShips, [], [])
+    // game state machine
+    counter = Math.ceil(counter - 1)
+    switch (state) {
+      case C.GAME_STATE.FINISH_COUNTDOWN:
+        if (counter === 0) {
+          state = C.GAME_STATE.RESULTS_SCREEN
+          counter = 10 * 1000 / C.TIME_STEP
+        }
+        break
+      case C.GAME_STATE.RESULTS_SCREEN:
+        if (counter === 0) {
+          state = C.GAME_STATE.IN_PROGRESS
+        }
+        break
+    }
+
+    const nextTurn = new Turn(
+      nextShips,
+      [], // events
+      [], // server events
+      state,
+      counter
+    )
     return nextTurn
   }
 }

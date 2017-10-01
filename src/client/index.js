@@ -260,6 +260,12 @@ function renderLeaderboard () {
     leaderboardContent += `| <span style="color: ${numberToHexColor(color)}">${username}</span>${repeat(' ', maxUsernameLength - username.length)} | ${repeat(' ', 'Laps'.length - lap.length)}${lap} | ${timeToString(totalTime)} | ${bestLap} |<br>`
   })
 
+  if (game.turn.state === C.GAME_STATE.FINISH_COUNTDOWN) {
+    leaderboardContent += `&nbsp;&nbsp;Finishing race in ${Math.ceil(game.turn.counter * C.TIME_STEP / 1000)}...`
+  } else if (game.turn.state === C.GAME_STATE.RESULTS_SCREEN) {
+    leaderboardContent += `&nbsp;&nbsp;Restarting game in ${Math.ceil(game.turn.counter * C.TIME_STEP / 1000)}...`
+  }
+
   if (leaderboard.innerHTML !== leaderboardContent) {
     leaderboard.innerHTML = leaderboardContent
   }
