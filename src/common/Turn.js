@@ -210,7 +210,6 @@ class Turn {
       input.turnL = false
       input.turnR = false
 
-      const finishedRace = (ship.lap > C.MAX_LAPS)
       if (!ship.hasFinishedRace() &&
           (state === C.GAME_STATE.IN_PROGRESS ||
            state === C.GAME_STATE.FINISH_COUNTDOWN)) {
@@ -316,11 +315,13 @@ class Turn {
     counter = Math.ceil(counter - 1)
     switch (state) {
       case C.GAME_STATE.FINISH_COUNTDOWN:
-        if (counter === 0) {
+        if (counter === 0 ||
+            ships.every(ship => ship.hasFinishedRace())) {
           state = C.GAME_STATE.RESULTS_SCREEN
           counter = 10 * 1000 / C.TIME_STEP
         }
         break
+
       case C.GAME_STATE.RESULTS_SCREEN:
         if (counter === 0) {
           // game reset
