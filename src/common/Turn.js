@@ -141,9 +141,12 @@ class Turn {
         case C.SERVER_EVENT.SPAWN_PLAYER:
           const shipId = sev.val
 
+          const dx = shipId * 3
+          const dy = shipId % 2 == 0 ? 0 : -4
+
           const body = new p2.Body({
             mass: 5,
-            position: [102, 52],
+            position: [98 + dx, 52 + dy],
             angle: -Math.PI / 2,
             fixedRotation: true
           })
@@ -233,7 +236,7 @@ class Turn {
       const cj = Math.floor((body.position[0] + C.CELL_EDGE / 2) / C.CELL_EDGE)
 
       const oldCheckpoint = ship.checkpoint
-      const cell = map[ci][cj]
+      const cell = ((map[ci] || {})[cj] || ' ')
       let lap = ship.lap
       let finishedRace = (lap > C.MAX_LAPS)
 
