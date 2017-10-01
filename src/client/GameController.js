@@ -47,7 +47,14 @@ class GameController {
 
   update (turn: Turn) {
     turn.ships.forEach((ship, i) => {
-      if (ship == null) return
+      if (ship == null) {
+        const shipController = this.ships[i]
+        if (shipController) {
+          this.stage.removeChild(shipController.sprite)
+          delete this.ships[i]
+        }
+        return
+      }
 
       let shipController = this.ships[i]
       if (shipController == null) {
