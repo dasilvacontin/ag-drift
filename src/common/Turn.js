@@ -33,6 +33,12 @@ function resetBody (body) {
   body._wakeUpAfterNarrowphase = false
 }
 
+function positionForShipId (shipId: number) {
+  const dx = shipId * 3
+  const dy = (shipId % 2 === 0) ? 0 : -4
+  return [98 + dx, 52 + dy]
+}
+
 class Turn {
   ships: Array<?Ship>
   events: Array<?Array<GameEvent>>
@@ -148,12 +154,9 @@ class Turn {
 
       switch (sev.type) {
         case C.SERVER_EVENT.SPAWN_PLAYER:
-          const dx = shipId * 3
-          const dy = (shipId % 2 === 0) ? 0 : -4
-
           const body = new p2.Body({
             mass: 5,
-            position: [98 + dx, 52 + dy],
+            position: positionForShipId(shipId),
             angle: -Math.PI / 2,
             fixedRotation: true
           })
@@ -326,7 +329,17 @@ class Turn {
         break
       case C.GAME_STATE.RESULTS_SCREEN:
         if (counter === 0) {
+          // game reset
           state = C.GAME_STATE.IN_PROGRESS
+          nextShips.forEach((ship, i) => {
+            ship.position = positionForShipId(i)
+            ship.velocity = [0, 0]
+            ship.angle = -Math.PI / 2
+            ship.checkpoint = 1
+            ship.lap = 0
+            ship.currentLaptime = 0
+            ship.laptimes = [Infinity]
+          })
         }
         break
     }
