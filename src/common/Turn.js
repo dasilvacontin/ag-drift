@@ -211,7 +211,7 @@ class Turn {
       input.turnR = false
 
       const finishedRace = (ship.lap > C.MAX_LAPS)
-      if (!finishedRace &&
+      if (!ship.hasFinishedRace() &&
           (state === C.GAME_STATE.IN_PROGRESS ||
            state === C.GAME_STATE.FINISH_COUNTDOWN)) {
         // only apply inputs if still racing
@@ -253,8 +253,6 @@ class Turn {
 
       const oldCheckpoint = ship.checkpoint
       const cell = ((map[ci] || {})[cj] || ' ')
-      let lap = ship.lap
-      let finishedRace = (lap > C.MAX_LAPS)
 
       // obtain current checkpoint
       let checkpoint = (cell === ' ' ? NaN : Number(map[ci][cj]))
@@ -265,7 +263,7 @@ class Turn {
       let laptimes = Array.from(ship.laptimes)
 
       // increase current lap's time
-      if (!finishedRace) laptimes[currentLaptime] += (dt / 1000)
+      if (!ship.hasFinishedRace()) laptimes[currentLaptime] += (dt / 1000)
 
       // detect checkpoint change
       // checkpoint number is descending, lap is indicated as a
@@ -278,28 +276,24 @@ class Turn {
         } else if (checkpoint > oldCheckpoint + 1) {
           // number jump indicates going from last checkpoint to
           // first checkpoint, i.e. crossed finish line
-          lap++
+          const hadFinishedRace = ship.hasFinishedRace()
+          ship.lap++
 
           // complete laptime if it applies
-          if (lap > currentLaptime) {
-            currentLaptime = lap
+          if (ship.lap > ship.currentLaptime) {
+            ship.currentLaptime = ship.lap
             laptimes.push(0)
           }
 
-          if (!finishedRace && lap > C.MAX_LAPS) {
-            finishedRace = true
-            if (state === C.GAME_STATE.IN_PROGRESS) {
-              state = C.GAME_STATE.FINISH_COUNTDOWN
-              counter = 15 * 1000 / C.TIME_STEP
-            }
-          }
-          if (finishedRace) {
-            // shut down engines before we stop processing player input
-            ship.input = new PlayerInput()
+          if (!hadFinishedRace &&
+              ship.hasFinishedRace() &&
+              state === C.GAME_STATE.IN_PROGRESS) {
+            state = C.GAME_STATE.FINISH_COUNTDOWN
+            counter = 15 * 1000 / C.TIME_STEP
           }
         } else if (checkpoint < oldCheckpoint - 1) {
           // going backwards and crossed finish line
-          lap--
+          ship.lap--
         }
       }
 
@@ -312,8 +306,8 @@ class Turn {
         color: ship.color,
         input: ship.input,
         checkpoint,
-        lap,
-        currentLaptime,
+        lap: ship.lap,
+        currentLaptime: ship.currentLaptime,
         laptimes
       })
     })
@@ -332,6 +326,7 @@ class Turn {
           // game reset
           state = C.GAME_STATE.IN_PROGRESS
           nextShips.forEach((ship, i) => {
+            if (!ship) return
             ship.position = positionForShipId(i)
             ship.velocity = [0, 0]
             ship.angle = -Math.PI / 2

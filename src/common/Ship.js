@@ -1,6 +1,7 @@
 // @flow
 const PlayerInput = require('./PlayerInput.js')
 const { vec2 } = require('p2')
+const C = require('./constants.js')
 
 class Ship {
   position: vec2
@@ -47,6 +48,10 @@ class Ship {
     this.lap = lap
     this.currentLaptime = currentLaptime
     this.laptimes = laptimes
+  }
+
+  hasFinishedRace () {
+    return (this.lap > C.MAX_LAPS)
   }
 }
 
