@@ -17,7 +17,8 @@ const constants = {
   MAX_LAPS: 5,
 
   SERVER_EVENT: {
-    SPAWN_PLAYER: 'spawnPlayer'
+    SPAWN_PLAYER: 'spawnPlayer',
+    DESTROY_PLAYER: 'destroyPlayer'
   },
 
   PLAYER_EVENT: {

@@ -209,7 +209,18 @@ class Game {
   }
 
   onPlayerLeave (socket: Socket) {
-    // TO-DO: implement
+    if (!this.isServer) return
+    const socketId = getId(socket)
+    const shipId = this.socketToShip[socketId]
+
+    delete this.socketToShip[socketId]
+    delete this.sockets[shipId]
+
+    const event = {
+      type: C.SERVER_EVENT.DESTROY_PLAYER,
+      val: shipId
+    }
+    this.onServerEvent(event, this.turnIndex)
   }
 
   onPlayerEvents (

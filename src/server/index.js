@@ -91,6 +91,12 @@ io.on('connection', function (socket) {
   })
 
   socket.on('game:ping', () => socket.emit('game:pong', Date.now()))
+
+  socket.on('disconnect', () => {
+    const shipId = game.getShipIdForSocket(socket)
+    if (shipId == null) return
+    game.onPlayerLeave(socket)
+  })
 })
 
 const PORT = process.env.PORT || 3000

@@ -28,14 +28,20 @@ function isSoundPaused (sound, nodeId) {
 
 class ShipController {
   sprite: PIXI.DisplayObject
+  color: number
   leftFire: PIXI.DisplayObject
   rightFire: PIXI.DisplayObject
   mainFire: PIXI.DisplayObject
   engineSoundId: ?number
 
   constructor (ship: Ship) {
+    this.regenerateSprites(ship)
+  }
+
+  regenerateSprites (ship: Ship) {
+    this.color = ship.color
     // chasis
-    const sprite = new PIXI.Graphics()
+    const sprite = (this.sprite || new PIXI.Graphics())
     sprite.pivot = { x: 1, y: 1 }
     sprite.beginFill(ship.color)
     sprite.moveTo(0.2, 0)
@@ -100,6 +106,8 @@ class ShipController {
   }
 
   update (ship: Ship) {
+    if (this.color !== ship.color) this.regenerateSprites(ship)
+
     const { position, angle, input } = ship
     this.sprite.position = new PIXI.Point(position[0], position[1])
     this.sprite.rotation = angle

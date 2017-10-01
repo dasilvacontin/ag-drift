@@ -1,5 +1,6 @@
 // @flow
 const p2 = require('p2')
+const clone = require('clone')
 const { vec2 } = p2
 const PlayerInput = require('./PlayerInput.js')
 const Ship = require('./Ship.js')
@@ -104,8 +105,6 @@ class Turn {
   }
 
   evolve (map: Track, world: p2.World, bodies: Array<p2.Body>, dt: number) {
-    const nextInputs = []
-
     // create / remove bodies
     const length = Math.max(this.ships.length, bodies.length)
     for (let i = 0; i < length; ++i) {
@@ -136,11 +135,12 @@ class Turn {
     }
 
     // consume server events
+    let ships = clone(this.ships)
     this.serverEvents.forEach((sev) => {
+      const shipId = sev.val
+
       switch (sev.type) {
         case C.SERVER_EVENT.SPAWN_PLAYER:
-          const shipId = sev.val
-
           const dx = shipId * 3
           const dy = (shipId % 2 === 0) ? 0 : -4
 
@@ -172,14 +172,18 @@ class Turn {
             currentLaptime: 0,
             laptimes: [Infinity]
           })
-          this.ships[shipId] = ship
+          ships[shipId] = ship
 
+          break
+
+        case C.SERVER_EVENT.DESTROY_PLAYER:
+          delete ships[shipId]
           break
       }
     })
 
     // apply player inputs
-    this.ships.forEach((ship, i) => {
+    ships.forEach((ship, i) => {
       if (ship == null) return
 
       let body = bodies[i]
@@ -223,13 +227,13 @@ class Turn {
       // air drag
       vec2.scale(body.velocity, body.velocity, 0.99)
 
-      nextInputs[i] = input
+      ship.input = input
     })
 
     world.step(dt / 1000)
 
     const nextShips = bodies.map((body, i) => {
-      const ship = this.ships[i]
+      const ship = ships[i]
       if (!ship) return
 
       const ci = Math.floor((body.position[1] + C.CELL_EDGE / 2) / C.CELL_EDGE)
@@ -273,7 +277,7 @@ class Turn {
           finishedRace = (lap > C.MAX_LAPS)
           if (finishedRace) {
             // shut down engines before we stop processing player input
-            nextInputs[i] = new PlayerInput()
+            ship.input = new PlayerInput()
           }
         } else if (checkpoint < oldCheckpoint - 1) {
           // going backwards and crossed finish line
@@ -281,13 +285,14 @@ class Turn {
         }
       }
 
+      // TO-DO: get rid of this section, no need to re-clone the struct
       return new Ship({
         position: vec2.clone(body.position),
         velocity: vec2.clone(body.velocity),
         angle: body.angle,
         username: ship.username,
         color: ship.color,
-        input: nextInputs[i],
+        input: ship.input,
         checkpoint,
         lap,
         currentLaptime,
