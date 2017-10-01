@@ -242,7 +242,9 @@ function renderLeaderboard () {
   ships.forEach((ship) => {
     if (ship == null) return
     const { color, username } = ship
-    const lap = String(ship.lap)
+    const lap = ship.lap > C.MAX_LAPS
+      ? '⚑'
+      : `${Math.max(1,ship.lap)}/${C.MAX_LAPS}`
 
     // time stuff
     const totalTime = ship.laptimes.reduce((prev, curr, i) =>
