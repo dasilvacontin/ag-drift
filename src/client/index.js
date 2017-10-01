@@ -244,7 +244,7 @@ function renderLeaderboard () {
     const { color, username } = ship
     const lap = ship.lap > C.MAX_LAPS
       ? '⚑'
-      : `${Math.max(1,ship.lap)}/${C.MAX_LAPS}`
+      : `${Math.max(1, ship.lap)}/${C.MAX_LAPS}`
 
     // time stuff
     const totalTime = ship.laptimes.reduce((prev, curr, i) =>

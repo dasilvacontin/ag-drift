@@ -142,7 +142,7 @@ class Turn {
           const shipId = sev.val
 
           const dx = shipId * 3
-          const dy = shipId % 2 == 0 ? 0 : -4
+          const dy = (shipId % 2 === 0) ? 0 : -4
 
           const body = new p2.Body({
             mass: 5,
