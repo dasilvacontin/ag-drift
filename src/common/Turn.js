@@ -142,6 +142,7 @@ class Turn {
 
     // consume server events
     let ships = clone(this.ships)
+    let {state, counter} = this
     this.serverEvents.forEach((sev) => {
       const shipId = sev.val
 
@@ -202,12 +203,14 @@ class Turn {
       body.angularForce = 0
 
       const playerEvents = this.events[i] || []
-      const input = new PlayerInput(ship.input)
+      let input = new PlayerInput(ship.input)
       input.turnL = false
       input.turnR = false
 
       const finishedRace = (ship.lap > C.MAX_LAPS)
-      if (!finishedRace) {
+      if (!finishedRace &&
+          (state === C.GAME_STATE.IN_PROGRESS ||
+           state === C.GAME_STATE.FINISH_COUNTDOWN)) {
         // only apply inputs if still racing
         // otherwise vfx for the boosters will show
         playerEvents.forEach(input.applyPlayerEvent, input)
@@ -228,7 +231,7 @@ class Turn {
 
         // leaning left by engaging right thruster
         if (input.leanL) body.applyForceLocal([-C.FORCE, 0])
-      }
+      } else input = new PlayerInput()
 
       // air drag
       vec2.scale(body.velocity, body.velocity, 0.99)
@@ -237,8 +240,6 @@ class Turn {
     })
 
     world.step(dt / 1000)
-
-    let {state, counter} = this
 
     const nextShips = bodies.map((body, i) => {
       const ship = ships[i]
