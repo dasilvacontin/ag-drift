@@ -48,16 +48,16 @@ const constants = {
   SHIP_MTRL,
   WALL_MTRL,
   SHIP_VS_WALL_CONTACT_MTRL: new p2.ContactMaterial(
-    constants.SHIP_MTRL,
-    constants.WALL_MTRL,
+    SHIP_MTRL,
+    WALL_MTRL,
     {
       restitution: 0.5,
       stiffness: Number.MAX_VALUE
     }
   ),
   SHIP_VS_SHIP_CONTACT_MTRL: new p2.ContactMaterial(
-    constants.SHIP_MTRL,
-    constants.SHIP_MTRL,
+    SHIP_MTRL,
+    SHIP_MTRL,
     {
       restitution: 1.0,
       stiffness: Number.MAX_VALUE
