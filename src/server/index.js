@@ -53,6 +53,11 @@ function tickAndSchedule () {
 }
 tickAndSchedule()
 
+function logMessage (msg) {
+  console.log(msg)
+  if (bot) bot.sendMessage(TELEGRAM_CHAT_ID, msg)
+}
+
 let firstPlayer = true
 io.on('connection', function (socket) {
   console.log(`${socket.client.id} connected`)
@@ -64,10 +69,10 @@ io.on('connection', function (socket) {
     debug = Boolean(debug)
 
     // send telegram notification on first user join
-    if (bot && firstPlayer) {
-      bot.sendMessage(TELEGRAM_CHAT_ID, `server up - ${username} joined game! beep boop`)
+    if (firstPlayer) {
+      firstPlayer = false
+      logMessage(`server up - ${username} joined game! beep boop`)
     }
-    firstPlayer = false
 
     game.onPlayerJoin(socket, username, debug)
   })
@@ -123,3 +128,7 @@ process.on('SIGTERM', () => {
     beforeExit()
   })
 })
+
+setInterval(() => {
+  logMessage(`- ${Object.keys(io.sockets.sockets).length} players connected`)
+}, 60 * 1000)
