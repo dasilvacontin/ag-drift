@@ -58,21 +58,18 @@ function logMessage (msg) {
   if (bot) bot.sendMessage(TELEGRAM_CHAT_ID, msg)
 }
 
-let firstPlayer = true
 io.on('connection', function (socket) {
-  console.log(`${socket.client.id} connected`)
-
-  socket.on('game:join', (username, debug) => {
-    if (typeof username !== 'string' || username.trim().length === 0) {
+  let username
+  socket.on('game:join', (givenUsername, debug) => {
+    if (typeof givenUsername !== 'string' ||
+        givenUsername.trim().length === 0) {
       username = 'Anonymous'
+    } else {
+      username = givenUsername.slice(0, 20)
     }
     debug = Boolean(debug)
 
-    // send telegram notification on first user join
-    if (firstPlayer) {
-      firstPlayer = false
-      logMessage(`server up - ${username} joined game! beep boop`)
-    }
+    logMessage(`- ${username} joined - ${Object.keys(io.sockets.sockets).length} players connected`)
 
     game.onPlayerJoin(socket, username, debug)
   })
@@ -101,6 +98,7 @@ io.on('connection', function (socket) {
     const shipId = game.getShipIdForSocket(socket)
     if (shipId == null) return
     game.onPlayerLeave(socket)
+    logMessage(`- ${username} left - ${Object.keys(io.sockets.sockets).length} players connected`)
   })
 })
 
@@ -128,7 +126,3 @@ process.on('SIGTERM', () => {
     beforeExit()
   })
 })
-
-setInterval(() => {
-  logMessage(`- ${Object.keys(io.sockets.sockets).length} players connected`)
-}, 60 * 1000)
