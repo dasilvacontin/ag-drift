@@ -2,7 +2,13 @@
 const p2 = require('p2')
 const subError = require('subclass-error')
 
+const TIME_STEP = 1000 / 60
+const SHIP_MTRL = new p2.Material()
+const WALL_MTRL = new p2.Material()
+
 const constants = {
+  TIME_STEP,
+  TURN_MAX_DELAY: Math.ceil(500 / TIME_STEP), // quantity of turns stored in server
   CLIENT_LEAD: 0,
   FORCE: 300,
   CELL_EDGE: 10,
@@ -20,6 +26,8 @@ const constants = {
     FINISH_COUNTDOWN: 'gameFinishCountdown',
     RESULTS_SCREEN: 'gameResultsScreen'
   },
+  FINISH_COUNTDOWN_S: 15 * 1000 / TIME_STEP,
+  RESULTS_SCREEN_S: 5 * 1000 / TIME_STEP,
 
   SERVER_EVENT: {
     SPAWN_PLAYER: 'spawnPlayer',
@@ -37,34 +45,24 @@ const constants = {
 
   InvalidTurnError: subError('InvalidTurnError'),
 
-  SHIP_MTRL: new p2.Material(),
-  WALL_MTRL: new p2.Material(),
-  SHIP_VS_WALL_CONTACT_MTRL: null,
-  SHIP_VS_SHIP_CONTACT_MTRL: null
+  SHIP_MTRL,
+  WALL_MTRL,
+  SHIP_VS_WALL_CONTACT_MTRL: new p2.ContactMaterial(
+    constants.SHIP_MTRL,
+    constants.WALL_MTRL,
+    {
+      restitution: 0.5,
+      stiffness: Number.MAX_VALUE
+    }
+  ),
+  SHIP_VS_SHIP_CONTACT_MTRL: new p2.ContactMaterial(
+    constants.SHIP_MTRL,
+    constants.SHIP_MTRL,
+    {
+      restitution: 1.0,
+      stiffness: Number.MAX_VALUE
+    }
+  )
 }
-
-constants.SHIP_VS_WALL_CONTACT_MTRL = new p2.ContactMaterial(
-  constants.SHIP_MTRL,
-  constants.WALL_MTRL,
-  {
-    restitution: 0.5,
-    stiffness: Number.MAX_VALUE
-  }
-)
-
-constants.SHIP_VS_SHIP_CONTACT_MTRL = new p2.ContactMaterial(
-  constants.SHIP_MTRL,
-  constants.SHIP_MTRL,
-  {
-    restitution: 1.0,
-    stiffness: Number.MAX_VALUE
-  }
-)
-
-constants.TIME_STEP = 1000 / 60
-constants.TURN_MAX_DELAY = Math.ceil(500 / constants.TIME_STEP) // quantity of turns stored in server
-
-constants.FINISH_COUNTDOWN_S = 15 * 1000 / constants.TIME_STEP
-constants.RESULTS_SCREEN_S = 5 * 1000 / constants.TIME_STEP
 
 module.exports = constants
