@@ -288,7 +288,7 @@ class Turn {
               ship.hasFinishedRace() &&
               state === C.GAME_STATE.IN_PROGRESS) {
             state = C.GAME_STATE.FINISH_COUNTDOWN
-            counter = 15 * 1000 / C.TIME_STEP
+            counter = C.FINISH_COUNTDOWN_S
           }
         } else if (checkpoint < oldCheckpoint - 1) {
           // going backwards and crossed finish line
@@ -318,7 +318,7 @@ class Turn {
         if (counter === 0 ||
             ships.every(ship => ship.hasFinishedRace())) {
           state = C.GAME_STATE.RESULTS_SCREEN
-          counter = 10 * 1000 / C.TIME_STEP
+          counter = C.RESULTS_SCREEN_S
         }
         break
 

@@ -3,8 +3,6 @@ const p2 = require('p2')
 const subError = require('subclass-error')
 
 const constants = {
-  TURN_MAX_DELAY: Math.floor(1000 / 60), // quantity of turns stored in server
-  TIME_STEP: 1000 / 60,
   CLIENT_LEAD: 0,
   FORCE: 300,
   CELL_EDGE: 10,
@@ -64,6 +62,9 @@ constants.SHIP_VS_SHIP_CONTACT_MTRL = new p2.ContactMaterial(
 )
 
 constants.TIME_STEP = 1000 / 60
-constants.TURN_MAX_DELAY = Math.ceil(500 / constants.TIME_STEP)
+constants.TURN_MAX_DELAY = Math.ceil(500 / constants.TIME_STEP) // quantity of turns stored in server
+
+constants.FINISH_COUNTDOWN_S = 15 * 1000 / constants.TIME_STEP
+constants.RESULTS_SCREEN_S = 5 * 1000 / constants.TIME_STEP
 
 module.exports = constants
