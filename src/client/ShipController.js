@@ -48,25 +48,27 @@ class ShipController {
   regenerateSprites (ship: Ship) {
     this.color = ship.color
     // chasis
-    const sprite = (this.sprite || new PIXI.Graphics())
+    const sprite = (this.sprite || new PIXI.Container())
     sprite.pivot = { x: 1, y: 1 }
-    sprite.beginFill(ship.color)
-    sprite.moveTo(0.2, 0)
-    sprite.lineTo(1.8, 0)
-    sprite.lineTo(2, 2)
-    sprite.lineTo(0, 2)
-    sprite.endFill()
+    this.sprite = sprite
+
+    const chasis = new PIXI.Graphics()
+    chasis.beginFill(ship.color)
+    chasis.moveTo(0.2, 0)
+    chasis.lineTo(1.8, 0)
+    chasis.lineTo(2, 2)
+    chasis.lineTo(0, 2)
+    chasis.endFill()
 
     // chasis peak
-    sprite.beginFill(0x000000)
-    sprite.fillAlpha = 0.2
-    sprite.moveTo(0.7, 0.9)
-    sprite.lineTo(1.3, 0.9)
-    sprite.lineTo(1.5, 2)
-    sprite.lineTo(0.5, 2)
-    sprite.endFill()
-
-    this.sprite = sprite
+    chasis.beginFill(0x000000)
+    chasis.fillAlpha = 0.2
+    chasis.moveTo(0.7, 0.9)
+    chasis.lineTo(1.3, 0.9)
+    chasis.lineTo(1.5, 2)
+    chasis.lineTo(0.5, 2)
+    chasis.endFill()
+    sprite.chasis = chasis
 
     const mainFire = new PIXI.Graphics()
     mainFire.position = new PIXI.Point(1, 1.85)
@@ -122,6 +124,8 @@ class ShipController {
     rearRightFire.alpha = 0.5
     sprite.addChild(rearRightFire)
     this.rearRightFire = sprite.rearRightFire = rearRightFire
+
+    sprite.addChild(chasis)
   }
 
   update (ship: Ship) {
