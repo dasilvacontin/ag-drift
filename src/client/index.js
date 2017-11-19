@@ -79,6 +79,7 @@ function padIsKeyDown (gamepad, key) {
 
 let sentPing
 let ping
+let minPing = Infinity
 // client's Date.now() - server's Date.now()
 
 function sendPing () {
@@ -88,8 +89,12 @@ function sendPing () {
 sendPing()
 
 socket.on('game:pong', (serverNow) => {
-  ping = (Date.now() - sentPing) / 2
-  C.CLIENT_LEAD = Date.now() - (serverNow + ping)
+  const now = Date.now()
+  ping = (now - sentPing) / 2
+  if (ping < minPing) {
+    minPing = ping
+    C.CLIENT_LEAD = now - (serverNow + minPing)
+  }
   setTimeout(sendPing, 500)
 })
 setInterval(() => {
