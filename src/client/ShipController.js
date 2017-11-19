@@ -36,8 +36,13 @@ class ShipController {
   mainFire: PIXI.DisplayObject
   engineSoundId: ?number
 
+  turnLtimer: number
+  turnRtimer: number
+
   constructor (ship: Ship) {
     this.regenerateSprites(ship)
+    this.turnLtimer = 0
+    this.turnRtimer = 0
   }
 
   regenerateSprites (ship: Ship) {
@@ -155,10 +160,18 @@ class ShipController {
     })
 
     // active / deactivate support thrusters' sprites
-    this.frontLeftFire.visible = input.leanR || input.turnR
-    this.rearLeftFire.visible = input.leanR || input.turnL
-    this.frontRightFire.visible = input.leanL || input.turnL
-    this.rearRightFire.visible = input.leanL || input.turnR
+    const timerCount = 7
+    if (input.turnL) this.turnLtimer = timerCount
+    if (input.turnR) this.turnRtimer = timerCount
+    const displayTurnRight = (this.turnRtimer > 0)
+    const displayTurnLeft = (this.turnLtimer > 0)
+    this.turnRtimer--
+    this.turnLtimer--
+
+    this.frontLeftFire.visible = input.leanR || displayTurnRight
+    this.rearLeftFire.visible = input.leanR || displayTurnLeft
+    this.frontRightFire.visible = input.leanL || displayTurnLeft
+    this.rearRightFire.visible = input.leanL || displayTurnRight
     let { engineSoundId } = this
 
     if (boost > 0 || input.leanL || input.leanR) {
