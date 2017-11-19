@@ -222,7 +222,10 @@ function renderLeaderboard () {
     if (a.lap > b.lap) return -1
     else if (b.lap > a.lap) return 1
 
-    return a.checkpoint - b.checkpoint
+    if (a.checkpoint !== b.checkpoint) return (a.checkpoint - b.checkpoint)
+    const aTotalTime = a.laptimes.reduce((prev, curr, i) => prev + curr, 0)
+    const bTotalTime = b.laptimes.reduce((prev, curr, i) => prev + curr, 0)
+    return (aTotalTime - bTotalTime)
   })
   const maxUsernameLength = ships.reduce((max, ship) => {
     if (ship == null) return max
@@ -252,11 +255,9 @@ function renderLeaderboard () {
       : `${Math.max(1, ship.lap)}/${C.MAX_LAPS}`
 
     // time stuff
-    const totalTime = ship.laptimes.reduce((prev, curr, i) =>
-      // lap 0 (before initially crossing the finish line) doesn't count
-      prev + (i > 0 ? curr : 0)
-    , 0)
+    const totalTime = ship.laptimes.reduce((prev, curr, i) => prev + curr, 0)
     let bestLap = ship.laptimes.reduce((prev, curr, i, arr) => {
+      if (i === 0) return prev // ignore pre-start lap
       if (i === arr.length - 1) return prev // ignore current lap
       return Math.min(prev, curr)
     }, Infinity)

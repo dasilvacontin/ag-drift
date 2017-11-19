@@ -180,7 +180,7 @@ class Turn {
             checkpoint: 1,
             lap: 0,
             currentLaptime: 0,
-            laptimes: [Infinity]
+            laptimes: [0]
           })
           ships[shipId] = ship
 
@@ -334,7 +334,7 @@ class Turn {
             ship.checkpoint = 1
             ship.lap = 0
             ship.currentLaptime = 0
-            ship.laptimes = [Infinity]
+            ship.laptimes = [0]
           })
         }
         break
