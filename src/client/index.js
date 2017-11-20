@@ -48,6 +48,55 @@ const renderer = new PIXI.autoDetectRenderer(
   { backgroundColor: C.WALL_COLOR })
 document.body.appendChild(renderer.view)
 
+// so that you can lose focus from the chat box
+const chatContainer = document.getElementById('chat')
+const tempChatInput = chatContainer.querySelector('input')
+let chatInput: HTMLInputElement
+if (!(tempChatInput instanceof HTMLInputElement)) throw new Error('kek')
+chatInput = tempChatInput
+
+function loseFocus () {
+  if (document.activeElement) document.activeElement.blur()
+}
+renderer.view.addEventListener('click', loseFocus)
+const TAB_KEYCODE = 9
+const ESC_KEYCODE = 27
+const RETURN_KEYCODE = 13
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  console.log(e.keyCode)
+  if (e.keyCode === ESC_KEYCODE) loseFocus()
+  if (e.keyCode === TAB_KEYCODE) {
+    console.log('got tab')
+    if (document.activeElement === chatInput) document.activeElement.blur()
+    else chatInput.focus()
+    e.preventDefault()
+  }
+  if (e.keyCode === RETURN_KEYCODE) {
+    const text = chatInput.value
+    chatInput.value = ''
+    socket.emit('msg', text)
+  }
+})
+
+function magic (input) {
+  input = input.replace(/&/g, '&amp;')
+  input = input.replace(/</g, '&lt;')
+  input = input.replace(/>/g, '&gt;')
+  return input
+}
+socket.on('msg', (username: string, color: number, text: string) => {
+  const msgWrapper = document.createElement('div')
+  msgWrapper.className = 'chat-message'
+
+  const msg = document.createElement('p')
+  msg.innerHTML = `<b><span style="color: ${numberToHexColor(color)}">${magic(username)}:</b> ${magic(text)}`
+
+  msgWrapper.appendChild(msg)
+  chatContainer.appendChild(msgWrapper)
+
+  chatContainer.scrollTop = chatContainer.scrollHeight
+})
+
 const camera = new PIXI.Container()
 const ZOOM = 12
 
@@ -297,7 +346,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     case kbd.UP_ARROW:
     case kbd.DOWN_ARROW:
     case kbd.SPACE_BAR:
-      e.preventDefault()
+      if (!document.activeElement) e.preventDefault()
   }
 }, false)
 
@@ -350,7 +399,9 @@ socket.on('game:bootstrap', (data) => {
   setTimeout(function () {
     const myShip = game.turn.ships[myShipId]
     if (myShip != null) {
-      leaderboard.style.boxShadow = `${numberToHexColor(myShip.color)} 2px 2px`
+      const hexColor = numberToHexColor(myShip.color)
+      leaderboard.style.boxShadow = `${hexColor} 2px 2px`
+      chatInput.style.boxShadow = `${hexColor} 2px 2px`
     }
   }, 0)
 })

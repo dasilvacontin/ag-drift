@@ -100,6 +100,14 @@ io.on('connection', function (socket) {
     game.onPlayerLeave(socket)
     logMessage(`- ${username} left - ${Object.keys(io.sockets.sockets).length} players connected`)
   })
+
+  socket.on('msg', (text: string) => {
+    if (!username) return
+    if (!text || !(typeof text === 'string')) return
+    const shipId = game.getShipIdForSocket(socket)
+    const ship: Ship = game.turn.ships[shipId]
+    io.sockets.emit('msg', username, ship.color, text.slice(0, 140))
+  })
 })
 
 const PORT = process.env.PORT || 3000

@@ -60,6 +60,38 @@
       color: white;
     }
 
+    #chat {
+      position: fixed;
+      right: 25px;
+      top: 20px;
+      bottom: 73px;
+      text-align: right;
+      overflow-y: scroll;
+    }
+
+    #chat > input {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      width: 150px;
+      box-shadow: rgb(0, 255, 65) 2px 2px;
+      border: 0;
+      padding: 7px;
+      font: 12px monospace;
+    }
+
+    .chat-message {
+      text-align: right;
+    }
+
+    .chat-message p {
+      margin: 5px 0;
+      padding: 5px;
+      max-width: 200px;
+      display: inline-block;
+      background: rgba(0, 0, 0, .85);
+    }
+
   </style>
   <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
 </head>
@@ -82,6 +114,10 @@
       <h1>ag-drift <span id="gameVersion" class="sub">v0.0.0</span></h1>
     </a>
     <p>by <a href="http://dasilvacont.in" target="_blank">@dasilvacontin</a></p>
+  </div>
+
+  <div id="chat">
+    <input type="text" placeholder="Chat here!.." maxlength="140"/>
   </div>
 
   <script src='bundle.js'></script>
