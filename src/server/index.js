@@ -20,6 +20,7 @@ app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'))
 })
 
+/*
 const map = [
   '###############',
   '# 5  ###  3   #',
@@ -29,8 +30,9 @@ const map = [
   '# 7   8  91   #',
   '###############'
 ].map((row) => row.split(''))
+*/
 
-/*
+/* */
 const map = [
   '###################',
   '#                 #',
@@ -43,7 +45,7 @@ const map = [
   '#          91     #',
   '###################'
 ].map((row) => row.split(''))
-*/
+/* */
 
 const game = new Game(map, true)
 let timerId
