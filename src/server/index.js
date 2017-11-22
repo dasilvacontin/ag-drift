@@ -6,14 +6,23 @@ const path = require('path')
 const ip = require('ip')
 const TelegramBot = require('node-telegram-bot-api')
 const { TELEGRAM_TOKEN, TELEGRAM_CHAT_ID } = process.env
-
-const Game = require('../common/Game.js')
-const C = require('../common/constants.js')
+const utils = require('../common/utils.js')
 
 let bot
 if (TELEGRAM_TOKEN != null) {
   bot = new TelegramBot(TELEGRAM_TOKEN)
+
+  // moneky patch logger function to send message to telegram
+  const oldLog = utils.log
+  utils.log = function log () {
+    const args = Array.prototype.slice.call(arguments)
+    bot.sendMessage(TELEGRAM_CHAT_ID, args.join(', '))
+    oldLog.apply(utils, arguments)
+  }
 }
+
+const Game = require('../common/Game.js')
+const C = require('../common/constants.js')
 
 app.use(express.static('public'))
 app.get('/', function (req, res) {

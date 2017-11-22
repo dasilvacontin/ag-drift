@@ -13,6 +13,8 @@ const GameController = require('./GameController.js')
 const PlayerEvent = require('../common/PlayerEvent.js')
 const PlayerInput = require('../common/PlayerInput.js')
 const C = require('../common/constants.js')
+const { timeToString, repeat } = require('../common/utils.js')
+
 const DEBUG_MODE = Boolean(localStorage.getItem('DEBUG'))
 const MUSIC_OFF = Boolean(localStorage.getItem('MUSIC_OFF'))
 
@@ -253,11 +255,6 @@ function gameLoop () {
   meter.tick()
 }
 
-function repeat (char, times) {
-  if (char === ' ') char = '&nbsp;'
-  return Array(times + 1).join(char)
-}
-
 function numberToHexColor (color: number) {
   let hexcolor = color.toString(16)
   return `#${repeat('0', 6 - hexcolor.length)}${hexcolor}`
@@ -311,12 +308,8 @@ function renderLeaderboard () {
       : `${Math.max(1, ship.lap)}/${C.MAX_LAPS}`
 
     // time stuff
-    const totalTime = ship.laptimes.reduce((prev, curr, i) => prev + curr, 0)
-    let bestLap = ship.laptimes.reduce((prev, curr, i, arr) => {
-      if (i === 0) return prev // ignore pre-start lap
-      if (i === arr.length - 1) return prev // ignore current lap
-      return Math.min(prev, curr)
-    }, Infinity)
+    const totalTime = ship.totalTime()
+    let bestLap = ship.bestLap()
     bestLap = (bestLap === Infinity ? repeat(' ', timeLength) : timeToString(bestLap))
 
     leaderboardContent += `| <span style="color: ${numberToHexColor(color)}">${username}</span>${repeat(' ', maxUsernameLength - username.length)} | ${repeat(' ', 'Laps'.length - lap.length)}${lap} | ${timeToString(totalTime)} | ${bestLap} |<br>`
@@ -331,18 +324,6 @@ function renderLeaderboard () {
   if (leaderboard.innerHTML !== leaderboardContent) {
     leaderboard.innerHTML = leaderboardContent
   }
-}
-
-function timeToString (time) {
-  let minutes = Math.floor(time / 60)
-  minutes = (minutes > 10 ? '+' : minutes)
-  let seconds = time % 60
-  let decimals = Math.floor((seconds * 1000) % 1000)
-  seconds = Math.floor(seconds)
-  seconds = (seconds < 10 ? '0' : '') + seconds
-  decimals = String(decimals)
-  decimals = `${repeat('0', 3 - decimals.length)}${decimals}`
-  return `${minutes}:${seconds}.${decimals}`
 }
 
 // avoid moving the page around

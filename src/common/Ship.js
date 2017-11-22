@@ -53,6 +53,18 @@ class Ship {
   hasFinishedRace () {
     return (this.lap > C.MAX_LAPS)
   }
+
+  bestLap () {
+    return this.laptimes.reduce((prev, curr, i, arr) => {
+      if (i === 0) return prev // ignore pre-start lap
+      if (i === arr.length - 1) return prev // ignore current lap
+      return Math.min(prev, curr)
+    }, Infinity)
+  }
+
+  totalTime () {
+    return this.laptimes.reduce((prev, curr, i) => prev + curr, 0)
+  }
 }
 
 module.exports = Ship

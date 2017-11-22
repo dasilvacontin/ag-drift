@@ -5,6 +5,7 @@ const { vec2 } = p2
 const PlayerInput = require('./PlayerInput.js')
 const Ship = require('./Ship.js')
 const C = require('./constants.js')
+const { log, timeToString } = require('./utils.js')
 
 function resetBody (body) {
   delete body._listeners
@@ -289,6 +290,11 @@ class Turn {
               state === C.GAME_STATE.IN_PROGRESS) {
             state = C.GAME_STATE.FINISH_COUNTDOWN
             counter = C.FINISH_COUNTDOWN_S
+            log(
+              ship.username,
+              timeToString(ship.totalTime()),
+              timeToString(ship.bestLap())
+            )
           }
         } else if (checkpoint < oldCheckpoint - 1) {
           // going backwards and crossed finish line
