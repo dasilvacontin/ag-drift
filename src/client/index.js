@@ -72,9 +72,16 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     e.preventDefault()
   }
   if (e.keyCode === RETURN_KEYCODE) {
-    const text = chatInput.value
-    chatInput.value = ''
-    socket.emit('msg', text)
+    if (document.activeElement === chatInput) {
+      const text = chatInput.value
+      chatInput.value = ''
+      socket.emit('msg', text)
+      // lose focus so that player can continue racing
+      document.activeElement.blur()
+    } else {
+      // additional way for chat input to gain focus
+      chatInput.focus()
+    }
   }
 })
 
