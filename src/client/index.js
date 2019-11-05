@@ -45,6 +45,10 @@ const bgMusic = new Howl({
   loop: true
 })
 
+function bool (a) {
+  return (a === 'true' || a === '1' || a === true || a === 1)
+}
+
 const renderer = new PIXI.autoDetectRenderer(
   window.innerWidth,
   window.innerHeight,
@@ -65,8 +69,8 @@ renderer.view.addEventListener('click', loseFocus)
 const TAB_KEYCODE = 9
 const ESC_KEYCODE = 27
 const RETURN_KEYCODE = 13
+const SPACEBAR_KEYCODE = 32
 document.addEventListener('keydown', (e: KeyboardEvent) => {
-  console.log(e.keyCode)
   if (e.keyCode === ESC_KEYCODE) loseFocus()
   if (e.keyCode === TAB_KEYCODE) {
     console.log('got tab')
@@ -85,6 +89,9 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
       // additional way for chat input to gain focus
       chatInput.focus()
     }
+  }
+  if (e.keyCode === SPACEBAR_KEYCODE) {
+    if (document.activeElement !== chatInput) e.preventDefault()
   }
 })
 
@@ -211,34 +218,32 @@ function gameLoop () {
     const oldInput = oldInputs[i] || new PlayerInput()
     let input = new PlayerInput()
 
-    input.turnL = padIsKeyDown(gamepad, kbd.LEFT_ARROW)
-    input.turnR = padIsKeyDown(gamepad, kbd.RIGHT_ARROW)
-    input.leanL = padIsKeyDown(gamepad, 'a')
-    input.leanR = padIsKeyDown(gamepad, 'd')
-    input.gas = padIsKeyDown(gamepad, kbd.UP_ARROW)
-    input.boost = padIsKeyDown(gamepad, 's')
+    if (shouldAILearn || (!shouldAILearn && !shouldAIExecute)) {
+      input.turnL = padIsKeyDown(gamepad, kbd.LEFT_ARROW)
+      input.turnR = padIsKeyDown(gamepad, kbd.RIGHT_ARROW)
+      input.leanL = padIsKeyDown(gamepad, 'a')
+      input.leanR = padIsKeyDown(gamepad, 'd')
+      input.gas = padIsKeyDown(gamepad, kbd.UP_ARROW)
+      input.boost = padIsKeyDown(gamepad, 's')
 
-    // keyboard
-    input.turnL = input.turnL || kbd.isKeyDown(kbd.LEFT_ARROW)
-    input.turnR = input.turnR || kbd.isKeyDown(kbd.RIGHT_ARROW)
-    input.leanL = input.leanL || kbd.isKeyDown('a')
-    input.leanR = input.leanR || kbd.isKeyDown('d')
-    input.gas = input.gas || kbd.isKeyDown(kbd.UP_ARROW)
-    input.boost = input.boost || kbd.isKeyDown('s')
+      // keyboard
+      input.turnL = input.turnL || kbd.isKeyDown(kbd.LEFT_ARROW)
+      input.turnR = input.turnR || kbd.isKeyDown(kbd.RIGHT_ARROW)
+      input.leanL = input.leanL || kbd.isKeyDown('a')
+      input.leanR = input.leanR || kbd.isKeyDown('d')
+      input.gas = input.gas || kbd.isKeyDown(kbd.UP_ARROW)
+      input.boost = input.boost || kbd.isKeyDown('s')
+    }
 
     // save into brain if ai disabled
-    let aiEnabled = (localStorage.AI_ENABLED && localStorage.AI_ENABLED !== 'false' && brain.length > 0)
-    if (localStorage.AI_CORRECTION_ENABLED && localStorage.AI_CORRECTION_ENABLED !== 'false') {
-      aiEnabled &= (Math.random() < 0.8)
-    }
     const shipAngle = getAngle(ship.angle)
 
-    if (!aiEnabled) {
+    if (shouldAILearn) {
       const anyKeyIsDown = input.leanL || input.leanR || input.gas
       if (Math.random() < 0.1 && anyKeyIsDown) {
         brain.push([ship.position, ship.velocity, getAngle(ship.angle), input])
       }
-    } else {
+    } else if (shouldAIExecute) {
       const closestMemory = findClosestMemory(ship)
       input = new PlayerInput(closestMemory[3])
       const angle = closestMemory[2]
@@ -335,7 +340,7 @@ function renderLeaderboard () {
   }, 0)
 
   let title = 'Username'
-  let leaderboardContent = `| ${title}${repeat(' ', maxUsernameLength - title.length)} | `
+  let leaderboardContent = `| ${title}${repeat(' ', Math.max(0, maxUsernameLength - title.length))} | `
 
   title = 'Laps'
   leaderboardContent += `${title} | `
@@ -347,7 +352,9 @@ function renderLeaderboard () {
   title = 'Best lap'
   leaderboardContent += `${title}${repeat(' ', timeLength - title.length)} |<br>`
 
-  leaderboardContent += `| ${repeat('-', maxUsernameLength)} | ${repeat('-', 'Laps'.length)} | ${repeat('-', timeLength)} | ${repeat('-', timeLength)} |<br>`
+  const usernameSectionLength = Math.max(maxUsernameLength, 'Username'.length)
+
+  leaderboardContent += `| ${repeat('-', usernameSectionLength)} | ${repeat('-', 'Laps'.length)} | ${repeat('-', timeLength)} | ${repeat('-', timeLength)} |<br>`
 
   ships.forEach((ship) => {
     if (ship == null) return
@@ -361,7 +368,7 @@ function renderLeaderboard () {
     let bestLap = ship.bestLap()
     bestLap = (bestLap === Infinity ? repeat(' ', timeLength) : timeToString(bestLap))
 
-    leaderboardContent += `| <span style="color: ${numberToHexColor(color)}">${username}</span>${repeat(' ', maxUsernameLength - username.length)} | ${repeat(' ', 'Laps'.length - lap.length)}${lap} | ${timeToString(totalTime)} | ${bestLap} |<br>`
+    leaderboardContent += `| <span style="color: ${numberToHexColor(color)}">${username}</span>${repeat(' ', usernameSectionLength - username.length)} | ${repeat(' ', 'Laps'.length - lap.length)}${lap} | ${timeToString(totalTime)} | ${bestLap} |<br>`
   })
 
   if (game.turn.state === C.GAME_STATE.FINISH_COUNTDOWN) {
@@ -375,6 +382,18 @@ function renderLeaderboard () {
   }
 }
 
+const AI_ENABLED = bool(localStorage.AI_ENABLED)
+let shouldAIExecute = false
+let shouldAILearn = false
+let leaderboardBgColor = ''
+
+function updateLeaderboardBGColor () {
+  let bg = ''
+  if (shouldAILearn) bg = 'red'
+  else if (shouldAIExecute) bg = 'blue'
+  leaderboard.style.background = bg
+}
+
 // avoid moving the page around
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   switch (e.keyCode) {
@@ -382,10 +401,33 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     case kbd.RIGHT_ARROW:
     case kbd.UP_ARROW:
     case kbd.DOWN_ARROW:
+      e.preventDefault()
+      break
     case kbd.SPACE_BAR:
-      if (!document.activeElement) e.preventDefault()
+      console.log('spacebar!')
+      if (AI_ENABLED) {
+        shouldAILearn = true
+        updateLeaderboardBGColor()
+      }
+      break
+    case 77: // 'm' for MODE
+      if (AI_ENABLED) {
+        shouldAIExecute = !shouldAIExecute
+        updateLeaderboardBGColor()
+      }
+      break
+    default:
+      break
   }
 }, false)
+document.addEventListener('keyup', (e: KeyboardEvent) => {
+  if (e.keyCode === kbd.SPACE_BAR) {
+    if (AI_ENABLED) {
+      shouldAILearn = false
+      updateLeaderboardBGColor()
+    }
+  }
+})
 
 socket.on('game:bootstrap', (data) => {
   const { initialTurn, map, turnsSlice, shipId, lastTick } = data

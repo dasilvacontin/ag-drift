@@ -299,7 +299,6 @@ class Game {
     dt = Math.min(dt, C.TIME_STEP - 1)
     dt = Math.floor(dt)
     if (dt === 0) return this.turn
-    console.log(`fake tick of ${dt}ms`)
 
     // reset world and re-add map bodies
     resetWorld(world)
