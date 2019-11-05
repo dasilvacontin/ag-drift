@@ -3,6 +3,7 @@
 const PIXI = global.PIXI = require('pixi.js')
 const { Howl } = require('howler')
 const kbd = require('@dasilvacontin/keyboard')
+const { vec2 } = require('p2')
 const io = require('socket.io-client')
 const socket = io()
 
@@ -168,6 +169,33 @@ const getGamepads = navigator.getGamepads || (() => [])
 const meter = typeof FPSMeter !== 'undefined' && DEBUG_MODE
   ? new FPSMeter()
   : { tickStart: () => {}, tick: () => {} }
+
+const brain = []
+window.brain = brain
+
+function computeMemoryDistance (memory, ship) {
+  return vec2.distance(memory[0], ship.position) +
+         vec2.distance(memory[1], ship.velocity) / 10
+}
+
+function findClosestMemory (ship) {
+  let closestMemory = null
+  let closestDistance = Infinity
+  brain.forEach(memory => {
+    const distance = computeMemoryDistance(memory, ship)
+    if (distance < closestDistance) {
+      closestDistance = distance
+      closestMemory = memory
+    }
+  })
+  return closestMemory
+}
+
+function getAngle (angle) {
+  angle += (Math.PI * 2)
+  return Math.round((angle % (Math.PI * 2)) / (Math.PI / 2))
+}
+
 function gameLoop () {
   requestAnimationFrame(gameLoop)
 
@@ -181,7 +209,7 @@ function gameLoop () {
 
     const gamepad = gamepads[i]
     const oldInput = oldInputs[i] || new PlayerInput()
-    const input = new PlayerInput()
+    let input = new PlayerInput()
 
     input.turnL = padIsKeyDown(gamepad, kbd.LEFT_ARROW)
     input.turnR = padIsKeyDown(gamepad, kbd.RIGHT_ARROW)
@@ -197,6 +225,27 @@ function gameLoop () {
     input.leanR = input.leanR || kbd.isKeyDown('d')
     input.gas = input.gas || kbd.isKeyDown(kbd.UP_ARROW)
     input.boost = input.boost || kbd.isKeyDown('s')
+
+    // save into brain if ai disabled
+    let aiEnabled = (localStorage.AI_ENABLED && localStorage.AI_ENABLED !== 'false' && brain.length > 0)
+    if (localStorage.AI_CORRECTION_ENABLED && localStorage.AI_CORRECTION_ENABLED !== 'false') {
+      aiEnabled &= (Math.random() < 0.8)
+    }
+    const shipAngle = getAngle(ship.angle)
+
+    if (!aiEnabled) {
+      const anyKeyIsDown = input.leanL || input.leanR || input.gas
+      if (Math.random() < 0.1 && anyKeyIsDown) {
+        brain.push([ship.position, ship.velocity, getAngle(ship.angle), input])
+      }
+    } else {
+      const closestMemory = findClosestMemory(ship)
+      input = new PlayerInput(closestMemory[3])
+      const angle = closestMemory[2]
+      input.turnL = ((shipAngle - 1) % 4 === angle) ||
+                    ((shipAngle - 2) % 4 === angle)
+      input.turnR = ((shipAngle + 1) % 4 === angle)
+    }
 
     // generate PlayerEvents from input - oldInput
     const events = []
