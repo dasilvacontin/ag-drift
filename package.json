@@ -33,7 +33,7 @@
     "chokidar-cli": "^1.2.0",
     "coveralls": "^2.11.9",
     "dot-only-hunter": "^1.0.2",
-    "eslint": "^2.13.1",
+    "eslint": "^6.6.0",
     "eslint-config-standard": "^5.1.0",
     "eslint-plugin-babel": "^3.3.0",
     "eslint-plugin-flow-vars": "^0.4.0",
