@@ -217,8 +217,8 @@ http.listen(PORT, function () {
 function beforeExit () {
   console.log('beforeExit')
   if (TELEGRAM_TOKEN == null) return
-  console.log('sending reb  t notification via telegram')
-  bot.sendMessage(TELEGRAM_CHAT_ID, 'reb  ting')
+  console.log('sending reboot notification via telegram')
+  bot.sendMessage(TELEGRAM_CHAT_ID, 'rebooting')
   .then(function () { console.log(arguments) })
   .catch(function () { console.log(arguments) })
 }

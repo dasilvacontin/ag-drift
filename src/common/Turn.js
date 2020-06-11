@@ -285,16 +285,19 @@ class Turn {
             laptimes.push(0)
           }
 
-          if (!hadFinishedRace &&
-              ship.hasFinishedRace() &&
-              state === C.GAME_STATE.IN_PROGRESS) {
-            state = C.GAME_STATE.FINISH_COUNTDOWN
-            counter = C.FINISH_COUNTDOWN_S
-            log(
-              ship.username,
-              timeToString(ship.totalTime()),
-              timeToString(ship.bestLap())
-            )
+          if (!hadFinishedRace && ship.hasFinishedRace()) {
+            if (ship.username.indexOf('bot') !== 0) {
+              log(
+                ship.username,
+                timeToString(ship.totalTime()),
+                timeToString(ship.bestLap())
+              )
+            }
+
+            if (state === C.GAME_STATE.IN_PROGRESS) {
+              state = C.GAME_STATE.FINISH_COUNTDOWN
+              counter = C.FINISH_COUNTDOWN_S
+            }
           }
         } else if (checkpoint < oldCheckpoint - 1) {
           // going backwards and crossed finish line
