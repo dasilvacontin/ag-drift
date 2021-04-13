@@ -23,18 +23,18 @@ let playing = false
 const musicTracks = [
   'POL-divide-by-zero-short.wav', // +2
   'POL-night-in-motion-short.wav', // +2
-  'POL-parallel-fields-short.wav' // +2
+  'POL-parallel-fields-short.wav', // +2
+  'POL-mathrix-short.wav' // +1
   /*
   'POL-catch-me-short.wav', // +1
   'POL-grid-breaking-short.wav', // +1
   'POL-higher-short.wav', // +1
   'POL-humanoid-short.wav', // +1
-  'POL-mathrix-short.wav' // +1
   */
 ]
 function getRandomMusicTrack () {
   // night in motion is bae
-  const index = Number(localStorage.getItem('trackIndex') || 1)
+  const index = Number(localStorage.getItem('trackIndex') || 3)
   const track = musicTracks[index]
   console.log(track)
   return 'sounds/' + track
