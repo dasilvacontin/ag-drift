@@ -304,8 +304,18 @@ function gameLoop () {
       halfHeight - player.sprite.position.y * stage.scale.y)
     camera.pivot = { x: halfWidth, y: halfHeight }
     camera.position = new PIXI.Point(halfWidth, halfHeight)
+    const deg360 = (Math.PI * 2)
+    while (-player.sprite.rotation < camera.rotation - deg360) {
+      camera.rotation -= deg360
+    }
+    while (-player.sprite.rotation > camera.rotation + deg360) {
+      camera.rotation += deg360
+    }
     camera.rotation += (-player.sprite.rotation - camera.rotation) / 15
   }
+
+  console.log(-player.sprite.rotation, camera.rotation)
+
   renderer.render(camera)
   renderLeaderboard()
   meter.tick()
