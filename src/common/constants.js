@@ -16,7 +16,7 @@ const constants = {
 
   WALL: '#',
   WALL_COLOR: 0x000000,
-  ROAD_COLOR: 0xEBEBEB,//0xAAAAFF,
+  ROAD_COLOR: 0xEBEBEB, // 0xAAAAFF
 
   MAX_LAPS: 5,
 

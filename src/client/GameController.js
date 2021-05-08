@@ -21,8 +21,8 @@ class GameController {
     const background = new PIXI.Sprite.fromImage('images/track2.png')
     background.position.x = -C.HALF_EDGE
     background.position.y = -C.HALF_EDGE
-    background.width = C.CELL_EDGE * 26;
-    background.height = C.CELL_EDGE * 13;
+    background.width = C.CELL_EDGE * 26
+    background.height = C.CELL_EDGE * 13
 
     /*
     game.map.forEach((row, i) => {
