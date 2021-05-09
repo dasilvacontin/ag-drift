@@ -51,7 +51,10 @@ const constants = {
     SHIP_MTRL,
     WALL_MTRL,
     {
-      restitution: 0.5,
+      restitution: 0.001,
+      friction: 5,
+      frictionRelaxation: 4,
+      frictionStiffness: 1000000,
       stiffness: Number.MAX_VALUE
     }
   ),
@@ -59,7 +62,8 @@ const constants = {
     SHIP_MTRL,
     SHIP_MTRL,
     {
-      restitution: 1.0,
+      restitution: 0.4,
+      friction: 0.95,
       stiffness: Number.MAX_VALUE
     }
   )
