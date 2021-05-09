@@ -252,10 +252,10 @@ class Turn {
       const cj = Math.floor((body.position[0] + C.CELL_EDGE / 2) / C.CELL_EDGE)
 
       const oldCheckpoint = ship.checkpoint
-      const cell = ((map[ci] || {})[cj] || ' ')
+      const cell = ((map.grid[ci] || {})[cj] || ' ')
 
       // obtain current checkpoint
-      let checkpoint = (cell === ' ' ? NaN : Number(map[ci][cj]))
+      let checkpoint = (cell === ' ' ? NaN : Number(map.grid[ci][cj]))
       if (isNaN(checkpoint)) checkpoint = oldCheckpoint
 
       // local vars to calc temp store new values

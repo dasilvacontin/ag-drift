@@ -9,6 +9,7 @@ class GameController {
   game: Game
   stage: PIXI.Stage
   ships: Array<ShipController>
+  foreground: PIXI.Sprite
 
   constructor (game: Game, debug: boolean = false) {
     this.game = game
@@ -18,11 +19,11 @@ class GameController {
     // add sprites for map
     if (debug) return
 
-    const background = new PIXI.Sprite.fromImage('images/track2.png')
+    const background = new PIXI.Sprite.fromImage(game.map.background)
     background.position.x = -C.HALF_EDGE
     background.position.y = -C.HALF_EDGE
-    background.width = C.CELL_EDGE * 26
-    background.height = C.CELL_EDGE * 13
+    background.width = C.CELL_EDGE * game.map.grid[0].length
+    background.height = C.CELL_EDGE * game.map.grid.length
 
     /*
     game.map.forEach((row, i) => {
@@ -58,6 +59,15 @@ class GameController {
     */
 
     this.stage.addChild(background)
+
+    if (game.map.foreground) {
+      const foreground = new PIXI.Sprite.fromImage(game.map.foreground)
+      foreground.position.x = -C.HALF_EDGE
+      foreground.position.y = -C.HALF_EDGE
+      foreground.width = C.CELL_EDGE * game.map.grid[0].length
+      foreground.height = C.CELL_EDGE * game.map.grid.length
+      this.foreground = foreground
+    }
   }
 
   update (turn: Turn) {
@@ -79,6 +89,7 @@ class GameController {
       }
       shipController.update(ship)
     })
+    this.foreground && this.stage.addChild(this.foreground)
   }
 }
 

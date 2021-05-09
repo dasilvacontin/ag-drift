@@ -39,11 +39,15 @@ function getRandomMusicTrack () {
   console.log(track)
   return 'sounds/' + track
 }
-const bgMusic = new Howl({
-  urls: [getRandomMusicTrack()],
-  buffer: true,
-  loop: true
-})
+let bgMusic
+let startBackgroundMusic = function (url) {
+  bgMusic = new Howl({
+    urls: [url],
+    buffer: true,
+    loop: true
+  })
+  startBackgroundMusic = () => {}
+}
 
 function bool (a) {
   return (a === 'true' || a === '1' || a === true || a === 1)
@@ -458,7 +462,8 @@ socket.on('game:bootstrap', (data) => {
   } else if (!playing) {
     console.log('play music')
     playing = true
-    bgMusic.play()
+    startBackgroundMusic(map.bgmusic)
+    setTimeout(() => bgMusic.play(), 1000)
   }
 
   game = new Game(map)

@@ -5,14 +5,14 @@ const { Howl } = require('howler')
 
 const SMALL_THRUSTER_WIDTH = 0.5
 const SMALL_THRUSTER_LONG = 0.4
-const ENGINE_VOL_LOW = 0.4
-const ENGINE_VOL_HIGH = 0.5
+const ENGINE_VOL_LOW = 0.1
+const ENGINE_VOL_HIGH = 0.2
 const FIRE_HIGH = 0x007AFF
 const FIRE_LOW = 0x00FFD4
 
 const turnSound = new Howl({
   urls: ['sounds/turn-brake2.wav'],
-  volume: 0.7
+  volume: 0.1
 })
 
 const engineSound = new Howl({

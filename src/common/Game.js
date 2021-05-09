@@ -101,7 +101,7 @@ class Game {
   generateCellBodies () {
     this.cellBodies = []
 
-    this.map.forEach((row, i) => {
+    this.map.grid.forEach((row, i) => {
       row.forEach((cell, j) => {
         // if it's a wall, add a collider
         if (cell === C.WALL) {
