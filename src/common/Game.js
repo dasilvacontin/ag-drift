@@ -4,6 +4,10 @@ const Socket = require('socket.io-client/lib/socket.js')
 const Turn = require('./Turn.js')
 const C = require('./constants.js')
 
+const playerColors = {
+  C4spanier: parseInt('0xC40000')
+}
+
 const gravity = [0, 0]
 let world = new p2.World({ gravity })
 let bodies = []
@@ -167,11 +171,12 @@ class Game {
     const shipId = this.turn.getFreeShipSlot()
     this.socketToShip[socketId] = shipId
 
+    const color = (playerColors[username] || randomColor())
     const event = {
       type: C.SERVER_EVENT.SPAWN_PLAYER,
       val: shipId,
       username,
-      color: randomColor()
+      color
     }
     this.onServerEvent(event, this.turnIndex)
 
