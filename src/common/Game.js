@@ -5,7 +5,8 @@ const Turn = require('./Turn.js')
 const C = require('./constants.js')
 
 const playerColors = {
-  C4spanier: parseInt('0xC40000')
+  C4spanier: parseInt('0xC40000'),
+  nimba: parseInt('0x0399a1')
 }
 
 const gravity = [0, 0]
