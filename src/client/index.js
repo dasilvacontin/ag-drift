@@ -6,6 +6,7 @@ const kbd = require('@dasilvacontin/keyboard')
 const { vec2 } = require('p2')
 const io = require('socket.io-client')
 const socket = io()
+const mixpanel = require('mixpanel-browser')
 
 const Ship = require('../common/Ship.js')
 const Turn = require('../common/Turn.js')
@@ -18,6 +19,9 @@ const { timeToString, repeat } = require('../common/utils.js')
 
 const DEBUG_MODE = Boolean(localStorage.getItem('DEBUG'))
 const MUSIC_OFF = Boolean(localStorage.getItem('MUSIC_OFF'))
+
+mixpanel.init('e8281c4dfc67e5a7954bcb73f5633584', {debug: true})
+mixpanel.track('Client game load')
 
 let playing = false
 let bgMusic
@@ -154,7 +158,7 @@ setInterval(() => {
 
 let game, gameController, myShipId
 let debugGame, debugGameController
-const oldInputs = []
+let oldInputs = []
 
 const getGamepads = navigator.getGamepads || (() => [])
 
@@ -196,6 +200,13 @@ function findClosestMemory (ship) : Memory {
 function getAngle (angle) {
   angle += (Math.PI * 2)
   return Math.round((angle % (Math.PI * 2)) / (Math.PI / 2))
+}
+
+const sentEvents = {}
+function mixpanelTrackOnce (eventName, details) {
+  if (sentEvents[eventName]) return
+  mixpanel.track(eventName, details)
+  sentEvents[eventName] = true
 }
 
 function gameLoop () {
@@ -252,22 +263,31 @@ function gameLoop () {
     // generate PlayerEvents from input - oldInput
     const events = []
     if (input.turnL && !oldInput.turnL) {
+      mixpanelTrackOnce('Player first interaction', { type: 'turnL'})
       events.push(new PlayerEvent(C.PLAYER_EVENT.TURN_L, input.turnL))
     }
     if (input.turnR && !oldInput.turnR) {
+      mixpanelTrackOnce('Player first interaction', { type: 'turnR'})
       events.push(new PlayerEvent(C.PLAYER_EVENT.TURN_R, input.turnR))
     }
     if (input.leanL !== oldInput.leanL) {
       events.push(new PlayerEvent(C.PLAYER_EVENT.LEAN_L, input.leanL))
+      mixpanelTrackOnce('Player first interaction', { type: 'turnL'})
+      mixpanelTrackOnce('Player discovered lean', { type: 'turnL'})
     }
     if (input.leanR !== oldInput.leanR) {
       events.push(new PlayerEvent(C.PLAYER_EVENT.LEAN_R, input.leanR))
+      mixpanelTrackOnce('Player first interaction', { type: 'turnR'})
+      mixpanelTrackOnce('Player discovered lean', { type: 'turnR'})
     }
     if (input.gas !== oldInput.gas) {
+      mixpanelTrackOnce('Player first interaction', { type: 'gas'})
       events.push(new PlayerEvent(C.PLAYER_EVENT.GAS, input.gas))
     }
     if (input.boost !== oldInput.boost) {
       events.push(new PlayerEvent(C.PLAYER_EVENT.BOOST, input.boost))
+      mixpanelTrackOnce('Player first interaction', { type: 'boost'})
+      mixpanelTrackOnce('Player discovered boost')
     }
 
     if (events.length > 0) {
@@ -480,6 +500,7 @@ socket.on('game:bootstrap', (data) => {
   }
 
   console.log('got bootstrapped by server')
+  oldInputs = []
   setTimeout(function () {
     const myShip = game.turn.ships[myShipId]
     if (myShip != null) {
