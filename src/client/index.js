@@ -263,30 +263,30 @@ function gameLoop () {
     // generate PlayerEvents from input - oldInput
     const events = []
     if (input.turnL && !oldInput.turnL) {
-      mixpanelTrackOnce('Player first interaction', { type: 'turnL'})
+      mixpanelTrackOnce('Player first interaction', { type: 'turnL' })
       events.push(new PlayerEvent(C.PLAYER_EVENT.TURN_L, input.turnL))
     }
     if (input.turnR && !oldInput.turnR) {
-      mixpanelTrackOnce('Player first interaction', { type: 'turnR'})
+      mixpanelTrackOnce('Player first interaction', { type: 'turnR' })
       events.push(new PlayerEvent(C.PLAYER_EVENT.TURN_R, input.turnR))
     }
     if (input.leanL !== oldInput.leanL) {
       events.push(new PlayerEvent(C.PLAYER_EVENT.LEAN_L, input.leanL))
-      mixpanelTrackOnce('Player first interaction', { type: 'turnL'})
-      mixpanelTrackOnce('Player discovered lean', { type: 'turnL'})
+      mixpanelTrackOnce('Player first interaction', { type: 'turnL' })
+      mixpanelTrackOnce('Player discovered lean', { type: 'turnL' })
     }
     if (input.leanR !== oldInput.leanR) {
       events.push(new PlayerEvent(C.PLAYER_EVENT.LEAN_R, input.leanR))
-      mixpanelTrackOnce('Player first interaction', { type: 'turnR'})
-      mixpanelTrackOnce('Player discovered lean', { type: 'turnR'})
+      mixpanelTrackOnce('Player first interaction', { type: 'turnR' })
+      mixpanelTrackOnce('Player discovered lean', { type: 'turnR' })
     }
     if (input.gas !== oldInput.gas) {
-      mixpanelTrackOnce('Player first interaction', { type: 'gas'})
+      mixpanelTrackOnce('Player first interaction', { type: 'gas' })
       events.push(new PlayerEvent(C.PLAYER_EVENT.GAS, input.gas))
     }
     if (input.boost !== oldInput.boost) {
       events.push(new PlayerEvent(C.PLAYER_EVENT.BOOST, input.boost))
-      mixpanelTrackOnce('Player first interaction', { type: 'boost'})
+      mixpanelTrackOnce('Player first interaction', { type: 'boost' })
       mixpanelTrackOnce('Player discovered boost')
     }
 
