@@ -103,10 +103,12 @@ function tickAndSchedule () {
 }
 tickAndSchedule()
 
+/*
 function logMessage (msg) {
   console.log(msg)
   if (bot) bot.sendMessage(TELEGRAM_CHAT_ID, msg)
 }
+*/
 
 const bots = []
 function createNBots (n) {
