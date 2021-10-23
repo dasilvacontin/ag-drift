@@ -289,12 +289,12 @@ function gameLoop () {
     if (input.leanL !== oldInput.leanL) {
       events.push(new PlayerEvent(C.PLAYER_EVENT.LEAN_L, input.leanL))
       mixpanelTrackOnce('Player first interaction', { type: 'turnL' })
-      mixpanelTrackOnce('Player discovered lean', { type: 'turnL' })
+      mixpanelTrackOnce('Player discovered lean', { type: 'leanL' })
     }
     if (input.leanR !== oldInput.leanR) {
       events.push(new PlayerEvent(C.PLAYER_EVENT.LEAN_R, input.leanR))
       mixpanelTrackOnce('Player first interaction', { type: 'turnR' })
-      mixpanelTrackOnce('Player discovered lean', { type: 'turnR' })
+      mixpanelTrackOnce('Player discovered lean', { type: 'leanR' })
     }
     if (input.gas !== oldInput.gas) {
       mixpanelTrackOnce('Player first interaction', { type: 'gas' })
