@@ -10,9 +10,10 @@ declare class FPSMeter {
 }
 
 declare type Track = {
+  id: String,
   background: string,
   foreground: string,
   bgmusic: String,
-  grid: Array<Array<number>>
+  grid: Array<Array<number>>,
 }
 declare type GameEvent = { type: string, val: any }

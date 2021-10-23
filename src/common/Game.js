@@ -151,7 +151,7 @@ class Game {
         world.addBody(body)
       })
 
-      nextTurn = currentTurn.evolve(this.map, world, bodies, C.TIME_STEP)
+      nextTurn = currentTurn.evolve(this.map, world, bodies, C.TIME_STEP, this.isServer)
       nextTurn.events = events
       nextTurn.serverEvents = serverEvents
       this.turns[i + 1] = nextTurn
@@ -313,7 +313,7 @@ class Game {
       world.addBody(body)
     })
 
-    return this.turn.evolve(this.map, world, bodies, dt)
+    return this.turn.evolve(this.map, world, bodies, dt, false)
   }
 }
 

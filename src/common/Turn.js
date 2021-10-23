@@ -6,6 +6,7 @@ const PlayerInput = require('./PlayerInput.js')
 const Ship = require('./Ship.js')
 const C = require('./constants.js')
 const { log, timeToString } = require('./utils.js')
+const Mixpanel = require('mixpanel')
 
 function resetBody (body) {
   delete body._listeners
@@ -117,7 +118,7 @@ class Turn {
     return true
   }
 
-  evolve (map: Track, world: p2.World, bodies: Array<p2.Body>, dt: number) {
+  evolve (map: Track, world: p2.World, bodies: Array<p2.Body>, dt: number, isServer: boolean) {
     // create / remove bodies
     const length = Math.max(this.ships.length, bodies.length)
     for (let i = 0; i < length; ++i) {
@@ -286,12 +287,24 @@ class Turn {
           }
 
           if (!hadFinishedRace && ship.hasFinishedRace()) {
+            const position = ships.reduce((sum, ship, i) => sum + (ship.hasFinishedRace() ? 1 : 0), 0)
             if (ship.username.indexOf('bot') !== 0) {
               log(
                 ship.username,
+                map.id,
                 timeToString(ship.totalTime()),
-                timeToString(ship.bestLap())
+                timeToString(ship.bestLap()),
+                position
               )
+              if (isServer) {
+                Mixpanel.singleton.track('Player finished race', {
+                  username: ship.username,
+                  track: map.id,
+                  totalTime: ship.totalTime(),
+                  bestLap: ship.bestLap(),
+                  position: position
+                })
+              }
             }
 
             if (state === C.GAME_STATE.IN_PROGRESS) {

@@ -72,6 +72,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
       const text = chatInput.value
       chatInput.value = ''
       socket.emit('msg', text)
+      mixpanel.track('Player sent a msg')
       // lose focus so that player can continue racing
       document.activeElement.blur()
     } else {
@@ -538,9 +539,11 @@ socket.on('game:debug', (turn) => {
 gameLoop()
 
 const username = localStorage.getItem('username') || prompt('Username:')
-localStorage.setItem('username', username)
-
-socket.emit('game:join', username, DEBUG_MODE)
+if (username) {
+  mixpanel.identify(username)
+  localStorage.setItem('username', username)
+  socket.emit('game:join', username, DEBUG_MODE)
+}
 
 const version = require('../package.json').version
 document.getElementById('gameVersion').innerHTML = `v${version}`

@@ -7,6 +7,9 @@ const ip = require('ip')
 const TelegramBot = require('node-telegram-bot-api')
 const { TELEGRAM_TOKEN, TELEGRAM_CHAT_ID } = process.env
 const utils = require('../common/utils.js')
+const Mixpanel = require('mixpanel')
+Mixpanel.singleton = Mixpanel.init('e8281c4dfc67e5a7954bcb73f5633584', {debug: true})
+Mixpanel.singleton.track('Server woke up')
 
 // brain
 const PlayerInput = require('../common/PlayerInput.js')
@@ -35,6 +38,7 @@ app.get('/', function (req, res) {
 })
 
 const track1 = {
+  id: 'Chicane',
   background: 'images/track1-background.png',
   foreground: 'images/track1-foreground.png',
   bgmusic: 'sounds/POL-night-in-motion-long.wav',
@@ -65,6 +69,7 @@ const map = [
 */
 
 const track2 = {
+  id: 'Hairpin',
   background: 'images/track2.png',
   foreground: '',
   bgmusic: 'sounds/POL-mathrix-short.wav',
@@ -223,7 +228,7 @@ io.on('connection', function (socket) {
     }
     debug = Boolean(debug)
 
-    logMessage(`- ${username} joined - ${Object.keys(io.sockets.sockets).length} players connected`)
+    // logMessage(`- ${username} joined - ${Object.keys(io.sockets.sockets).length} players connected`)
 
     game.onPlayerJoin(socket, username, debug)
   })
@@ -252,7 +257,7 @@ io.on('connection', function (socket) {
     const shipId = game.getShipIdForSocket(socket)
     if (shipId == null) return
     game.onPlayerLeave(socket)
-    logMessage(`- ${username} left - ${Object.keys(io.sockets.sockets).length} players connected`)
+    // logMessage(`- ${username} left - ${Object.keys(io.sockets.sockets).length} players connected`)
   })
 
   socket.on('msg', (text: string) => {
