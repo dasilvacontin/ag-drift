@@ -6,7 +6,7 @@ const PlayerInput = require('./PlayerInput.js')
 const Ship = require('./Ship.js')
 const C = require('./constants.js')
 const { log, timeToString } = require('./utils.js')
-const Mixpanel = require('mixpanel')
+// const Mixpanel = require('mixpanel')
 
 function resetBody (body) {
   delete body._listeners
@@ -149,7 +149,7 @@ class Turn {
     }
 
     // consume server events
-    let ships = clone(this.ships)
+    let ships: Array<?Ship> = clone(this.ships)
     let {state, counter} = this
     this.serverEvents.forEach((sev) => {
       const shipId = sev.val
@@ -287,7 +287,7 @@ class Turn {
           }
 
           if (!hadFinishedRace && ship.hasFinishedRace()) {
-            const position = ships.reduce((sum, ship, i) => sum + (ship.hasFinishedRace() ? 1 : 0), 0)
+            const position = ships.reduce((sum, ship, i) => sum + (ship && ship.hasFinishedRace() ? 1 : 0), 0)
             if (ship.username.indexOf('bot') !== 0) {
               log(
                 ship.username,
@@ -297,6 +297,7 @@ class Turn {
                 position
               )
               if (isServer) {
+                /*
                 Mixpanel.singleton.track('Player finished race', {
                   username: ship.username,
                   track: map.id,
@@ -304,6 +305,7 @@ class Turn {
                   bestLap: ship.bestLap(),
                   position: position
                 })
+                */
               }
             }
 

@@ -157,7 +157,7 @@ setInterval(() => {
   console.log({ ping, clientLead: C.CLIENT_LEAD })
 }, 5 * 1000)
 
-let game, gameController, myShipId
+let game : Game, gameController, myShipId
 let debugGame, debugGameController
 let oldInputs = []
 
@@ -219,11 +219,20 @@ function gameLoop () {
 
   // get inputs for this turn
   let gamepads = getGamepads.apply(navigator)
-  game.turn.ships.forEach((ship, i) => {
+  const ships : Array<?Ship> = game.turn.ships
+  ships.forEach((ship, i) => {
     if (ship == null || i !== myShipId) return
 
     if (!hadFinishedRace && ship.hasFinishedRace()) {
       mixpanel.people.increment('races finished')
+      const position = ships.reduce((sum, ship, i) => sum + (ship && ship.hasFinishedRace() ? 1 : 0), 0)
+      mixpanel.track('Player finished race', {
+        username: ship.username,
+        track: game.map.id,
+        totalTime: ship.totalTime(),
+        bestLap: ship.bestLap(),
+        position: position
+      })
     }
     hadFinishedRace = ship.hasFinishedRace()
 
