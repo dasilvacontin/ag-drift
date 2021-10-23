@@ -210,6 +210,7 @@ function mixpanelTrackOnce (eventName, details) {
   sentEvents[eventName] = true
 }
 
+let hadFinishedRace = false
 function gameLoop () {
   requestAnimationFrame(gameLoop)
 
@@ -220,6 +221,11 @@ function gameLoop () {
   let gamepads = getGamepads.apply(navigator)
   game.turn.ships.forEach((ship, i) => {
     if (ship == null || i !== myShipId) return
+
+    if (!hadFinishedRace && ship.hasFinishedRace()) {
+      mixpanel.people.increment('races finished')
+    }
+    hadFinishedRace = ship.hasFinishedRace()
 
     const gamepad = gamepads[i]
     const oldInput = oldInputs[i] || new PlayerInput()
