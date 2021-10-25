@@ -27,6 +27,7 @@ mixpanel.init('e8281c4dfc67e5a7954bcb73f5633584', {
       if (mixpanel.get_distinct_id() !== username) {
         mixpanel.identify(username)
       }
+      mixpanel.people.set('username', username)
     }, 1000)
   }
 })
