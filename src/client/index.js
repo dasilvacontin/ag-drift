@@ -20,7 +20,16 @@ const { timeToString, repeat } = require('../common/utils.js')
 const DEBUG_MODE = Boolean(localStorage.getItem('DEBUG'))
 const MUSIC_OFF = Boolean(localStorage.getItem('MUSIC_OFF'))
 
-mixpanel.init('e8281c4dfc67e5a7954bcb73f5633584', {debug: true})
+mixpanel.init('e8281c4dfc67e5a7954bcb73f5633584', {
+  debug: true,
+  loaded: function () {
+    setTimeout(function () {
+      if (mixpanel.get_distinct_id() !== username) {
+        mixpanel.identify(username)
+      }
+    }, 1000)
+  }
+})
 mixpanel.track('Client game load')
 
 let playing = false
@@ -555,7 +564,6 @@ gameLoop()
 
 const username = localStorage.getItem('username') || prompt('Username:')
 if (username) {
-  mixpanel.identify(username)
   localStorage.setItem('username', username)
   socket.emit('game:join', username, DEBUG_MODE)
 }
