@@ -35,10 +35,24 @@ function resetBody (body) {
   body._wakeUpAfterNarrowphase = false
 }
 
-function positionForShipId (shipId: number) {
+function positionForShipId (map: Track, shipId: number) {
+  // Find starting cell
+  let startI = -1
+  let startJ = -1
+  for (let i = 0; i < map.grid.length; ++i) {
+    for (let j = 0; j < map.grid[i].length; ++j) {
+      if (map.grid[i][j] === '9') {
+        startI = i + 0.20
+        startJ = j + 1 - 0.25
+        break
+      }
+    }
+    if (startJ !== -1) break
+  }
+
   const dx = shipId * 3
   const dy = (shipId % 2 === 0) ? 0 : -4
-  return [98 + dx, 52 + dy]
+  return [startJ * C.CELL_EDGE + dx, startI * C.CELL_EDGE + dy]
 }
 
 class Turn {
@@ -158,7 +172,7 @@ class Turn {
         case C.SERVER_EVENT.SPAWN_PLAYER:
           const body = new p2.Body({
             mass: 5,
-            position: positionForShipId(shipId),
+            position: positionForShipId(map, shipId),
             angle: -Math.PI / 2,
             fixedRotation: true
           })
@@ -219,6 +233,10 @@ class Turn {
         // otherwise vfx for the boosters will show
         playerEvents.forEach(input.applyPlayerEvent, input)
 
+        if (map.boostDisabled) {
+          input.boost = false
+        }
+
         // turn left
         if (input.turnL) body.angle += -Math.PI / 2
 
@@ -239,6 +257,14 @@ class Turn {
 
       // air drag
       vec2.scale(body.velocity, body.velocity, 0.99)
+
+      // ground drag
+      const ci = Math.floor((body.position[1] + C.CELL_EDGE / 2) / C.CELL_EDGE)
+      const cj = Math.floor((body.position[0] + C.CELL_EDGE / 2) / C.CELL_EDGE)
+      const cell = ((map.grid[ci] || {})[cj] || ' ')
+      if (cell === ';') {
+        vec2.scale(body.velocity, body.velocity, 0.95)
+      }
 
       ship.input = input
     })
@@ -352,7 +378,7 @@ class Turn {
           state = C.GAME_STATE.IN_PROGRESS
           nextShips.forEach((ship, i) => {
             if (!ship) return
-            ship.position = positionForShipId(i)
+            ship.position = positionForShipId(map, i)
             ship.velocity = [0, 0]
             ship.angle = -Math.PI / 2
             ship.checkpoint = 1

@@ -5,6 +5,19 @@ const Turn = require('../common/Turn.js')
 const ShipController = require('./ShipController.js')
 const C = require('../common/constants.js')
 
+const colors = {}
+colors[C.WALL] = C.WALL_COLOR
+colors[' '] = C.ROAD_COLOR
+colors['1'] = C.ROAD_COLOR
+colors['2'] = C.ROAD_COLOR
+colors['3'] = C.ROAD_COLOR
+colors['4'] = C.ROAD_COLOR
+colors['5'] = C.ROAD_COLOR
+colors['6'] = C.ROAD_COLOR
+colors['7'] = C.ROAD_COLOR
+colors['8'] = C.ROAD_COLOR
+colors[';'] = 0x29A41A
+
 class GameController {
   game: Game
   stage: PIXI.Stage
@@ -19,46 +32,50 @@ class GameController {
     // add sprites for map
     if (debug) return
 
-    const background = new PIXI.Sprite.fromImage(game.map.background)
-    background.position.x = -C.HALF_EDGE
-    background.position.y = -C.HALF_EDGE
-    background.width = C.CELL_EDGE * game.map.grid[0].length
-    background.height = C.CELL_EDGE * game.map.grid.length
+    if (game.map.background) {
+      const background = new PIXI.Sprite.fromImage(game.map.background)
+      background.position.x = -C.HALF_EDGE
+      background.position.y = -C.HALF_EDGE
+      background.width = C.CELL_EDGE * game.map.grid[0].length
+      background.height = C.CELL_EDGE * game.map.grid.length
+      this.stage.addChild(background)
+    }
 
-    /*
-    game.map.forEach((row, i) => {
-      row.forEach((cell, j) => {
-        const sprite = new PIXI.Graphics()
-        if (cell !== '9') {
-          if (cell === C.WALL) {
-            sprite.beginFill(cell === C.WALL ? C.WALL_COLOR : C.ROAD_COLOR)
+    if (game.map.wallColor) {
+      C.WALL_COLOR = game.map.wallColor
+      colors[C.WALL] = C.WALL_COLOR
+    }
+
+    if (!game.map.background) {
+      game.map.grid.forEach((row, i) => {
+        row.forEach((cell, j) => {
+          const sprite = new PIXI.Graphics()
+          if (cell !== '9') {
+            sprite.beginFill(colors[cell])
             sprite.drawRect(0, 0, C.CELL_EDGE, C.CELL_EDGE)
             sprite.endFill()
             this.stage.addChild(sprite)
-          }
-        } else {
-          sprite.beginFill(C.ROAD_COLOR)
-          sprite.drawRect(0, 0, C.CELL_EDGE, C.CELL_EDGE)
-          sprite.endFill()
-          const subs = 5
-          const subEdge = C.CELL_EDGE / subs
-          for (let fi = 0; fi < subs; ++fi) {
-            for (let fj = 2; fj < subs; ++fj) {
-              const color = (fi + fj) % 2 === 1 ? C.ROAD_COLOR : 0x111111
-              sprite.beginFill(color)
-              sprite.drawRect(fj * subEdge, fi * subEdge, subEdge, subEdge)
-              sprite.endFill()
+          } else {
+            sprite.beginFill(C.ROAD_COLOR)
+            sprite.drawRect(0, 0, C.CELL_EDGE, C.CELL_EDGE)
+            sprite.endFill()
+            const subs = 5
+            const subEdge = C.CELL_EDGE / subs
+            for (let fi = 0; fi < subs; ++fi) {
+              for (let fj = 2; fj < subs; ++fj) {
+                const color = (fi + fj) % 2 === 1 ? C.ROAD_COLOR : 0x111111
+                sprite.beginFill(color)
+                sprite.drawRect(fj * subEdge, fi * subEdge, subEdge, subEdge)
+                sprite.endFill()
+              }
             }
+            this.stage.addChild(sprite)
           }
-          this.stage.addChild(sprite)
-        }
 
-        sprite.position = new PIXI.Point(j * C.CELL_EDGE - C.HALF_EDGE, i * C.CELL_EDGE - C.HALF_EDGE)
+          sprite.position = new PIXI.Point(j * C.CELL_EDGE - C.HALF_EDGE, i * C.CELL_EDGE - C.HALF_EDGE)
+        })
       })
-    })
-    */
-
-    this.stage.addChild(background)
+    }
 
     if (game.map.foreground) {
       const foreground = new PIXI.Sprite.fromImage(game.map.foreground)
