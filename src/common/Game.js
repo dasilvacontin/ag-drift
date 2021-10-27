@@ -110,16 +110,40 @@ class Game {
       row.forEach((cell, j) => {
         // if it's a wall, add a collider
         if (cell === C.WALL) {
-          const cellShape = new p2.Box({
-            width: C.CELL_EDGE,
-            height: C.CELL_EDGE,
-            material: C.WALL_MTRL
-          })
+          // container for colliders
           const cellBody = new p2.Body({
             mass: 0,
             position: [j * C.CELL_EDGE, i * C.CELL_EDGE]
           })
-          cellBody.addShape(cellShape)
+
+          // width bar
+          if (j === 0 || (row[j - 1] !== C.WALL)) {
+            let wj = 1
+            while (((j + wj) < row.length) && (row[j + wj] === C.WALL)) ++wj
+            if (wj > 1 || i === 0 || (this.map.grid[i - 1][j] !== C.WALL)) {
+              const cellWidthShape = new p2.Box({
+                width: wj * C.CELL_EDGE,
+                height: C.CELL_EDGE,
+                material: C.WALL_MTRL
+              })
+              cellBody.addShape(cellWidthShape, [(wj - 1) * C.CELL_EDGE / 2, 0])
+            }
+          }
+
+          // height bar
+          if (i === 0 || (this.map.grid[i - 1][j] !== C.WALL)) {
+            let hi = 1
+            while (((i + hi) < this.map.grid.length) && (this.map.grid[i + hi][j] === C.WALL)) ++hi
+            if (hi > 1) {
+              const cellHeightShape = new p2.Box({
+                width: C.CELL_EDGE,
+                height: hi * C.CELL_EDGE,
+                material: C.WALL_MTRL
+              })
+              cellBody.addShape(cellHeightShape, [0, (hi - 1) * C.CELL_EDGE / 2])
+            }
+          }
+
           this.cellBodies.push(cellBody)
         }
       })
