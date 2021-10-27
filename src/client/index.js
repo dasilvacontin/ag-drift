@@ -502,7 +502,11 @@ document.addEventListener('keyup', (e: KeyboardEvent) => {
 
 let isFirstLoad = true
 socket.on('game:bootstrap', (data) => {
-  const { initialTurn, map, turnsSlice, shipId, lastTick } = data
+  const initialTurn : number = data.initialTurn
+  const track : Track = data.map
+  const turnsSlice : Array<Turn> = data.turnsSlice
+  const shipId : number = data.shipId
+  const lastTick : number = data.lastTick
   myShipId = shipId
 
   // so that I don't go cray cray with the music
@@ -511,18 +515,18 @@ socket.on('game:bootstrap', (data) => {
   } else if (!playing) {
     console.log('play music')
     playing = true
-    startBackgroundMusic(map.bgmusic)
+    startBackgroundMusic(track.bgmusic)
     setTimeout(() => bgMusic.play(), 1000)
   }
 
-  game = new Game(map)
-  renderer.backgroundColor = map.skyboxColor || 0x000000
+  game = new Game(track)
+  renderer.backgroundColor = track.skyboxColor || 0x000000
   game.turns = []
   let lastTurn
   for (let i = 0; i < turnsSlice.length; ++i) {
-    let { ships, events, serverEvents } = turnsSlice[i]
+    let { ships, events, serverEvents, state, counter } = turnsSlice[i]
     ships = ships.map((rawShip) => rawShip && new Ship(rawShip))
-    const turn = new Turn(ships, events, serverEvents)
+    const turn = new Turn(ships, events, serverEvents, state, counter)
     game.turns[initialTurn + i] = turn
     lastTurn = turn
   }
@@ -542,7 +546,7 @@ socket.on('game:bootstrap', (data) => {
   camera.addChild(gameController.stage)
 
   if (DEBUG_MODE) {
-    debugGame = new Game(map)
+    debugGame = new Game(track)
     debugGameController = new GameController(debugGame, true)
     debugGameController.stage.alpha = 0.5
     gameController.stage.addChild(debugGameController.stage)
@@ -562,8 +566,8 @@ socket.on('game:bootstrap', (data) => {
   if (isFirstLoad) {
     isFirstLoad = false
     addSystemMessage('Connected to ag-drift server. We currently have around 6 people who check into the game every day. Each day there\'s a different track, from a selection of 3 tracks. I look forward to your suggestions and feedback at dasilvacontin@gmail.com. Thank you for playing! :)')
-    if (map.welcomeMessage) {
-      addSystemMessage(map.welcomeMessage)
+    if (track.welcomeMessage) {
+      addSystemMessage(track.welcomeMessage)
     }
   }
 })
