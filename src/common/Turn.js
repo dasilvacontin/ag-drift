@@ -204,6 +204,7 @@ class Turn {
 
         case C.SERVER_EVENT.DESTROY_PLAYER:
           delete ships[shipId]
+          // TODO: should probably do something with the ship's body?
           break
       }
     })
