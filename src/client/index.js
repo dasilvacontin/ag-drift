@@ -99,6 +99,7 @@ function magic (input) {
   input = input.replace(/&/g, '&amp;')
   input = input.replace(/</g, '&lt;')
   input = input.replace(/>/g, '&gt;')
+  input = input.replace(/\n/g, '<br>')
   return input
 }
 
@@ -565,9 +566,9 @@ socket.on('game:bootstrap', (data) => {
 
   if (isFirstLoad) {
     isFirstLoad = false
-    addSystemMessage('Connected to ag-drift server. We currently have around 6 people who check into the game every day. Each day there\'s a different track, from a selection of 3 tracks. I look forward to your suggestions and feedback at dasilvacontin@gmail.com. Thank you for playing! :)')
-    if (track.welcomeMessage) {
-      addSystemMessage(track.welcomeMessage)
+    addSystemMessage('Connected to ag-drift server. We currently have around 24 racers in our community, who race weekly on this website. Each day there\'s a different track, from a selection of 3 tracks. I look forward to your suggestions and feedback at dasilvacontin@gmail.com. Thank you for playing! :)')
+    if (track.messages) {
+      track.messages.forEach(addSystemMessage)
     }
   }
 })

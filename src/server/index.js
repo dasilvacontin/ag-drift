@@ -44,6 +44,24 @@ const track1 = {
   bgmusic: 'sounds/POL-night-in-motion-long.wav',
   nBots: 5,
   boostDisabled: false,
+  messages: [
+    `Ranking for track #1: Chicane.
+3 October to 3 November 2021.
+    
+== Best lap ==
+🥇 C4spanier, 4.2
+🥈 Gmandogs, 4.516
+🥉 GMSNDAWGS, 4.516
+4️⃣ *eater, 4.6
+5️⃣ bot5, 4.616
+
+== Best total time (5 laps) ==
+🥇 C4spanier, 23.716
+🥈 Gmandogs, 28.316
+🥉 bot5, 28.866
+4️⃣ *eater, 29.533
+5️⃣ GMSNDAWGS, 30.416`
+  ],
   grid: [
     '###############',
     '# 5  ###  3   #',
@@ -77,6 +95,24 @@ const track2 = {
   bgmusic: 'sounds/POL-mathrix-short.wav',
   nBots: 5,
   boostDisabled: false,
+  messages: [
+    `Ranking for track #2: Hairpin.
+3 October to 3 November 2021.
+
+== Best lap ==
+🥇 C4spanier, 9.65
+🥈 bot5, 10.1
+🥉 dasilvacontin, 10.133
+4️⃣ Deez, 10.25
+5️⃣ null, 10.333
+
+== Best total time (5 laps) ==
+🥇 C4spanier, 53.666
+🥈 bot5, 56.95
+🥉 Gmandogs, 57.683
+4️⃣ null, 58.333
+5️⃣ *eater, 58.55`
+  ],
   grid: [
     '##########################',
     '#   5              6     #',
@@ -103,7 +139,25 @@ const track3 = {
   skyboxColor: 0x000000,
   wallColor: 0x000000,
   boostDisabled: true,
-  welcomeMessage: 'Welcome to track #3, Miracle Park, created on Oct 25th 2021. Boost is currently disabled for this track.',
+  messages: [
+    'Welcome to track #3, Miracle Park, created on Oct 25th 2021. Boost is currently disabled for this track.',
+    `Ranking for track #3: Miracle Park.
+3 October to 3 November 2021.
+
+== Best lap ==
+🥇 C4spanier, 10.55
+🥈 null, 10.75
+🥉 Picked, 11.833
+4️⃣ bot5, 12.033
+5️⃣ silenced, 13.416
+
+== Best total time (5 laps) ==
+🥇 C4spanier, 58.5
+🥈 null, 61.4
+🥉 bot5, 63.983
+4️⃣ Picked, 65.233
+5️⃣ silenced, 75.65`
+  ],
   grid: [
     '##########################',
     '####;;;;;;;#;;;;;#########',
