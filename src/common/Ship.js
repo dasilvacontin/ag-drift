@@ -54,6 +54,10 @@ class Ship {
     return (this.lap > C.MAX_LAPS)
   }
 
+  isABot () {
+    return (this.username.length === 4 && this.username.startsWith('bot'))
+  }
+
   bestLap () {
     return this.laptimes.reduce((prev, curr, i, arr) => {
       if (i === 0) return prev // ignore pre-start lap

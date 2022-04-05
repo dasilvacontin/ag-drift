@@ -8,6 +8,10 @@ const TelegramBot = require('node-telegram-bot-api')
 const { TELEGRAM_TOKEN, TELEGRAM_CHAT_ID } = process.env
 const utils = require('../common/utils.js')
 const Mixpanel = require('mixpanel')
+const dotenv = require('dotenv')
+dotenv.config()
+const NotionClient = require('@notionhq/client').Client
+const notion = new NotionClient({ auth: process.env.NOTION_API_KEY })
 Mixpanel.singleton = Mixpanel.init('e8281c4dfc67e5a7954bcb73f5633584', {debug: true})
 Mixpanel.singleton.track('Server woke up')
 
@@ -32,6 +36,25 @@ if (TELEGRAM_TOKEN != null) {
 const Game = require('../common/Game.js')
 const C = require('../common/constants.js')
 
+app.get('*', function (req, res, next) {
+  const host = req.get('host')
+  console.log('host', host)
+  next()
+  /*
+  if (condition) {
+      res.set('x-forwarded-proto', 'https');
+
+      if (checkHost === 'www.' && ( req.get('host').indexOf('www.') >= 0)) {
+          res.redirect('https://' + req.get('host') + req.url);
+      }
+      else {
+          res.redirect('https://www.' + req.get('host') + req.url);
+      }
+  } else {
+      next();
+  }
+  */
+})
 app.use(express.static('public'))
 app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'))
@@ -39,29 +62,13 @@ app.get('/', function (req, res) {
 
 const track1 = {
   id: 'Chicane',
+  name: 'Chicane',
   background: 'images/track1-background.png',
   foreground: 'images/track1-foreground.png',
   bgmusic: 'sounds/POL-night-in-motion-long.wav',
   nBots: 5,
   boostDisabled: false,
-  messages: [
-    `Ranking for track #1: Chicane.
-23 October to 3 November 2021.
-    
-== Best lap ==
-🥇 C4spanier, 4.2
-🥈 Gmandogs, 4.516
-🥉 GMSNDAWGS, 4.516
-4️⃣ clayton, 4.6
-5️⃣ bot5, 4.616
-
-== Best total time (5 laps) ==
-🥇 C4spanier, 23.716
-🥈 Gmandogs, 28.316
-🥉 bot5, 28.866
-4️⃣ clayton, 29.533
-5️⃣ GMSNDAWGS, 30.416`
-  ],
+  messages: [],
   grid: [
     '###############',
     '# 5  ###  3   #',
@@ -90,29 +97,13 @@ const map = [
 
 const track2 = {
   id: 'Hairpin',
+  name: 'Hairpin',
   background: 'images/track2.png',
   foreground: '',
   bgmusic: 'sounds/POL-mathrix-short.wav',
   nBots: 5,
   boostDisabled: false,
-  messages: [
-    `Ranking for track #2: Hairpin.
-22 October to 3 November 2021.
-
-== Best lap ==
-🥇 null 8.583
-🥈 C4spanier, 9.65
-🥉 clayton, 9.783
-4️⃣ bot5, 10.1
-5️⃣ dasilvacontin, 10.133
-
-== Best total time (5 laps) ==
-🥇 C4spanier, 53.666
-🥈 bot5, 56.95
-🥉 clayton, 57.066
-4️⃣ Gmandogs, 57.683
-5️⃣ null, 58.333`
-  ],
+  messages: [],
   grid: [
     '##########################',
     '#   5              6     #',
@@ -132,6 +123,7 @@ const track2 = {
 
 const track3 = {
   id: 'Miracle Park',
+  name: 'Miracle Park',
   background: '',
   foreground: '',
   bgmusic: 'sounds/POL-miracle-park-short.wav',
@@ -141,22 +133,6 @@ const track3 = {
   boostDisabled: true,
   messages: [
     'Welcome to track #3, Miracle Park, created on Oct 25th 2021. Boost is currently disabled for this track.',
-    `Ranking for track #3: Miracle Park.
-23 October to 3 November 2021.
-
-== Best lap ==
-🥇 C4spanier, 10.55
-🥈 null, 10.75
-🥉 Picked, 11.833
-4️⃣ bot5, 12.033
-5️⃣ silenced, 13.416
-
-== Best total time (5 laps) ==
-🥇 C4spanier, 58.5
-🥈 null, 61.4
-🥉 bot5, 63.983
-4️⃣ Picked, 65.233
-5️⃣ silenced, 75.65`
   ],
   grid: [
     '##########################',
@@ -178,7 +154,7 @@ const track3 = {
 
 const tracks = [track1, track2, track3]
 // const trackChoice = Math.floor(Math.random() * tracks.length)
-const trackChoice = (new Date().getDay()) % tracks.length
+const trackChoice = 0 // (new Date().getDay()) % tracks.length
 const track = tracks[trackChoice]
 
 const game = new Game(track, true)
@@ -360,7 +336,72 @@ io.on('connection', function (socket) {
     const ship: Ship = game.turn.ships[shipId]
     io.sockets.emit('msg', username, ship.color, text.slice(0, 140))
   })
+
+  socket.emit('system-msg', lastBestLapsMessage)
 })
+
+const LAP_RESULTS_DATABASE_ID = 'd8e17e9c905c4d19acfffbb33d6c7258'
+
+function renderUsernameAndBestLap (record) {
+  if (record == null) {
+    return '–'
+  } else {
+    return `${record.username}, ${utils.timeToString(record.bestLap)}`
+  }
+}
+
+let lastBestLapsMessage = ''
+async function calculateBestTimes () {
+  let lapResults = await notion.databases.query({
+    database_id: LAP_RESULTS_DATABASE_ID,
+    sorts: [
+      {
+        property: 'Lap time',
+        direction: 'ascending'
+      }
+    ]
+  })
+
+  const bestLaps = {
+    'Chicane': {},
+    'Hairpin': {},
+    'Miracle Park': {}
+  }
+
+  lapResults.results.forEach(lap => {
+    const username = lap.properties.Username.rich_text[0].plain_text
+    const trackName = lap.properties['Track name'].rich_text[0].plain_text
+    const lapTime = lap.properties['Lap time'].number
+    const bestLapTimeSoFar = bestLaps[trackName][username] || Infinity
+    if (lapTime < bestLapTimeSoFar) bestLaps[trackName][username] = lapTime
+  })
+  for (let trackName in bestLaps) {
+    const bestLapsForRacers = bestLaps[trackName]
+    const bestLapsForTrack = []
+    for (let username in bestLapsForRacers) {
+      bestLapsForTrack.push({ username: username, bestLap: bestLapsForRacers[username] })
+    }
+    bestLapsForTrack.sort((r1, r2) => r1.bestLap - r2.bestLap)
+    bestLaps[trackName] = bestLapsForTrack
+  }
+
+  let bestLapsMessage = ''
+  for (let trackName in bestLaps) {
+    const bestLapsForTrack = bestLaps[trackName]
+    bestLapsMessage += `== Best lap in ${trackName}==
+    🥇 ${renderUsernameAndBestLap(bestLapsForTrack[0])}
+    🥈 ${renderUsernameAndBestLap(bestLapsForTrack[1])}
+    🥉 ${renderUsernameAndBestLap(bestLapsForTrack[2])}
+    4️⃣ ${renderUsernameAndBestLap(bestLapsForTrack[3])}
+    5️⃣ ${renderUsernameAndBestLap(bestLapsForTrack[4])}
+
+    `
+  }
+  lastBestLapsMessage = bestLapsMessage
+  io.emit('system-msg', bestLapsMessage)
+  setTimeout(calculateBestTimes, 60 * 1000)
+}
+calculateBestTimes()
 
 const PORT = process.env.PORT || 3000
 http.listen(PORT, function () {

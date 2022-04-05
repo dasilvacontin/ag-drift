@@ -131,6 +131,7 @@ function addSystemMessage (text) {
 socket.on('msg', (username: string, color: number, text: string) => {
   addChatMessage(username, color, text)
 })
+socket.on('system-msg', (text) => addSystemMessage(text))
 
 const camera = new PIXI.Container()
 const ZOOM = 12
@@ -566,7 +567,8 @@ socket.on('game:bootstrap', (data) => {
 
   if (isFirstLoad) {
     isFirstLoad = false
-    addSystemMessage('Connected to ag-drift server. We currently have around 24 racers in our community, who race weekly on this website. Each day there\'s a different track, from a selection of 3 tracks. I look forward to your suggestions and feedback at dasilvacontin@gmail.com. Thank you for playing! :)')
+    addSystemMessage(`Welcome to ag-drift! 🎶
+    April 6, 2022: Added dynamic best lap leaderboards. Enjoy!`)
     if (track.messages) {
       track.messages.forEach(addSystemMessage)
     }

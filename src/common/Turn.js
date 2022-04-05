@@ -8,6 +8,18 @@ const C = require('./constants.js')
 const { log, timeToString } = require('./utils.js')
 // const Mixpanel = require('mixpanel')
 
+const RACE_RESULTS_DATABASE_ID = '9fd03df83faf4347b8289223fb46e6bd'
+const LAP_RESULTS_DATABASE_ID = 'd8e17e9c905c4d19acfffbb33d6c7258'
+
+let notion
+if (process.env.IS_SERVER) {
+  const dotenv = require('dotenv')
+  dotenv.config()
+  const NotionClient = require('@notionhq/client').Client
+  notion = new NotionClient({ auth: process.env.NOTION_API_KEY })
+  console.log('set up notion client')
+}
+
 function resetBody (body) {
   delete body._listeners
   body.id = p2.Body._idCounter++
@@ -309,21 +321,114 @@ class Turn {
 
           // complete laptime if it applies
           if (ship.lap > ship.currentLaptime) {
+            if (isServer && ship.currentLaptime > 0 && !ship.isABot()) {
+              notion.pages.create({
+                parent: {
+                  database_id: LAP_RESULTS_DATABASE_ID
+                },
+                properties: {
+                  Name: {
+                    title: [
+                      {
+                        text: {
+                          content: `${ship.username} finished a lap`
+                        }
+                      }
+                    ]
+                  },
+                  'Username': {
+                    rich_text: [
+                      {
+                        type: 'text',
+                        text: {
+                          content: ship.username
+                        }
+                      }
+                    ]
+                  },
+                  'Track name': {
+                    rich_text: [
+                      {
+                        type: 'text',
+                        text: {
+                          content: map.name
+                        }
+                      }
+                    ]
+                  },
+                  'Lap time': {
+                    number: ship.laptimes[ship.currentLaptime]
+                  }
+                }
+              })
+            }
             ship.currentLaptime = ship.lap
             laptimes.push(0)
           }
 
           if (!hadFinishedRace && ship.hasFinishedRace()) {
             const position = ships.reduce((sum, ship, i) => sum + (ship && ship.hasFinishedRace() ? 1 : 0), 0)
-            if (ship.username.indexOf('bot') !== 0) {
+            if (!ship.isABot()) {
+              // sending race results to telegram
               log(
                 ship.username,
-                map.id,
+                map.name,
                 timeToString(ship.totalTime()),
                 timeToString(ship.bestLap()),
                 position
               )
               if (isServer) {
+                notion.pages.create({
+                  parent: {
+                    database_id: RACE_RESULTS_DATABASE_ID
+                  },
+                  properties: {
+                    Name: {
+                      title: [
+                        {
+                          text: {
+                            content: `${ship.username} finished a race`
+                          }
+                        }
+                      ]
+                    },
+                    'Username': {
+                      rich_text: [
+                        {
+                          type: 'text',
+                          text: {
+                            content: ship.username
+                          }
+                        }
+                      ]
+                    },
+                    'Track name': {
+                      rich_text: [
+                        {
+                          type: 'text',
+                          text: {
+                            content: map.name
+                          }
+                        }
+                      ]
+                    },
+                    'Total time': {
+                      number: ship.totalTime()
+                    },
+                    'Final position': {
+                      number: position
+                    },
+                    'Number of players': {
+                      number: this.ships.filter(s => s).length
+                    },
+                    'Number of human players': {
+                      number: this.ships.filter(s => s && !s.isABot()).length
+                    },
+                    'Number of laps': {
+                      number: ship.lap
+                    }
+                  }
+                })
                 /*
                 Mixpanel.singleton.track('Player finished race', {
                   username: ship.username,
@@ -367,7 +472,7 @@ class Turn {
     switch (state) {
       case C.GAME_STATE.FINISH_COUNTDOWN:
         if (counter === 0 ||
-            ships.every(ship => !ship || ship.hasFinishedRace() || (ship.username.indexOf('bot') > -1))) {
+            ships.every(ship => !ship || ship.hasFinishedRace() || !ship.isABot())) {
           state = C.GAME_STATE.RESULTS_SCREEN
           counter = C.RESULTS_SCREEN_S
         }
