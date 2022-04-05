@@ -154,7 +154,7 @@ const track3 = {
 
 const tracks = [track1, track2, track3]
 // const trackChoice = Math.floor(Math.random() * tracks.length)
-const trackChoice = 0 // (new Date().getDay()) % tracks.length
+const trackChoice = (new Date().getDay()) % tracks.length
 const track = tracks[trackChoice]
 
 const game = new Game(track, true)
