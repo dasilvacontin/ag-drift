@@ -132,7 +132,7 @@ const track3 = {
   wallColor: 0x000000,
   boostDisabled: true,
   messages: [
-    'Welcome to track #3, Miracle Park, created on Oct 25th 2021. Boost is currently disabled for this track.',
+    'Welcome to track #3, Miracle Park, created on Oct 25th 2021. Boost is currently disabled for this track.'
   ],
   grid: [
     '##########################',
