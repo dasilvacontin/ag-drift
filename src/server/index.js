@@ -337,10 +337,12 @@ io.on('connection', function (socket) {
     io.sockets.emit('msg', username, ship.color, text.slice(0, 140))
   })
 
-  socket.emit('system-msg', lastBestLapsMessage)
+  setTimeout(() => { socket.emit('system-msg', lastBestLapsMessage) }, 500)
 })
 
 const LAP_RESULTS_DATABASE_ID = 'd8e17e9c905c4d19acfffbb33d6c7258'
+
+const emojiForPosition = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
 
 function renderUsernameAndBestLap (record) {
   if (record == null) {
@@ -388,7 +390,7 @@ async function calculateBestTimes () {
   let bestLapsMessage = ''
   for (let trackName in bestLaps) {
     const bestLapsForTrack = bestLaps[trackName]
-    bestLapsMessage += `== Best lap in ${trackName}==
+    bestLapsMessage += `== Best lap in ${trackName} ==
     🥇 ${renderUsernameAndBestLap(bestLapsForTrack[0])}
     🥈 ${renderUsernameAndBestLap(bestLapsForTrack[1])}
     🥉 ${renderUsernameAndBestLap(bestLapsForTrack[2])}
@@ -398,8 +400,16 @@ async function calculateBestTimes () {
     `
   }
   lastBestLapsMessage = bestLapsMessage
-  io.emit('system-msg', bestLapsMessage)
-  setTimeout(calculateBestTimes, 60 * 1000)
+
+  let bestLapsForCurrentTrackMessage = `== Best lap in ${track.name} ==\n`
+  const bestLapsForCurrentTrack = bestLaps[track.name]
+  for (let position = 0 ; position < 9; position++) {
+    const record = bestLapsForCurrentTrack[position]
+    bestLapsForCurrentTrackMessage += `${emojiForPosition[position]} ${record ? (record.username + ', ' + utils.timeToString(record.bestLap)) : '-'}\n`
+  }
+
+  io.emit('system-msg', bestLapsForCurrentTrackMessage)
+  setTimeout(calculateBestTimes, 30 * 1000)
 }
 calculateBestTimes()
 
