@@ -472,7 +472,7 @@ class Turn {
     switch (state) {
       case C.GAME_STATE.FINISH_COUNTDOWN:
         if (counter === 0 ||
-            ships.every(ship => !ship || ship.hasFinishedRace() || !ship.isABot())) {
+            ships.every(ship => !ship || ship.hasFinishedRace() || ship.isABot())) {
           state = C.GAME_STATE.RESULTS_SCREEN
           counter = C.RESULTS_SCREEN_S
         }
