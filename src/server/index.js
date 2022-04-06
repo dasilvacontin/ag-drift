@@ -337,7 +337,10 @@ io.on('connection', function (socket) {
     io.sockets.emit('msg', username, ship.color, text.slice(0, 140))
   })
 
-  setTimeout(() => { socket.emit('system-msg', lastBestLapsMessage) }, 500)
+  setTimeout(() => {
+    socket.emit('system-msg', lastBestLapsMessage)
+    socket.emit('the-crown', lastCrownOwner)
+  }, 500)
 })
 
 const LAP_RESULTS_DATABASE_ID = 'd8e17e9c905c4d19acfffbb33d6c7258'
@@ -353,6 +356,7 @@ function renderUsernameAndBestLap (record) {
 }
 
 let lastBestLapsMessage = ''
+let lastCrownOwner
 async function calculateBestTimes () {
   let crono = Date.now()
   let lapResults
@@ -416,6 +420,8 @@ async function calculateBestTimes () {
   }
 
   io.emit('system-msg', bestLapsForCurrentTrackMessage)
+  lastCrownOwner = bestLapsForCurrentTrack[0].username
+  io.emit('the-crown', lastCrownOwner)
   setTimeout(calculateBestTimes, 30 * 1000)
   console.log(`calculateBestTimes took ${Date.now() - crono}`)
 }

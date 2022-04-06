@@ -132,6 +132,10 @@ socket.on('msg', (username: string, color: number, text: string) => {
   addChatMessage(username, color, text)
 })
 socket.on('system-msg', (text) => addSystemMessage(text))
+socket.on('the-crown', (username) => {
+  window.theCrown = username
+  gameController.regenerateAllShipSprites()
+})
 
 const camera = new PIXI.Container()
 const ZOOM = 12

@@ -9,6 +9,8 @@ const ENGINE_VOL_LOW = 0.1
 const ENGINE_VOL_HIGH = 0.2
 const FIRE_HIGH = 0x007AFF
 const FIRE_LOW = 0x00FFD4
+const FIRE_HIGH_CROWN = 0xFFFB00
+const FIRE_LOW_CROWN = 0xFFB800
 
 const turnSound = new Howl({
   urls: ['sounds/turn-brake2.wav'],
@@ -46,6 +48,7 @@ class ShipController {
   }
 
   regenerateSprites (ship: Ship) {
+    if (ship == null) return
     this.color = ship.color
     // chasis
     const sprite = (this.sprite || new PIXI.Container())
@@ -61,8 +64,9 @@ class ShipController {
     chasis.endFill()
 
     // chasis peak
-    chasis.beginFill(0x000000)
-    chasis.fillAlpha = (ship.isABot() ? 0.88 : 0.2)
+    const hasCrown = (ship.username === window.theCrown)
+    chasis.beginFill(hasCrown ? FIRE_LOW_CROWN : 0x000000)
+    chasis.fillAlpha = ((ship.isABot() || hasCrown) ? 0.88 : 0.2)
     chasis.moveTo(0.7, 0.9)
     chasis.lineTo(1.3, 0.9)
     chasis.lineTo(1.5, 2)
@@ -70,61 +74,62 @@ class ShipController {
     chasis.endFill()
     sprite.chasis = chasis
 
-    const mainFire = new PIXI.Graphics()
-    mainFire.position = new PIXI.Point(1, 1.85)
-    mainFire.beginFill(0xFFFFFF)
-    mainFire.drawRect(-0.5, 0, 1, 0.5)
-    mainFire.endFill()
-    sprite.addChild(mainFire)
-    this.mainFire = sprite.mainFire = mainFire
+    if (!this.mainFire) {
+      const mainFire = new PIXI.Graphics()
+      mainFire.position = new PIXI.Point(1, 1.85)
+      mainFire.beginFill(0xFFFFFF)
+      mainFire.drawRect(-0.5, 0, 1, 0.5)
+      mainFire.endFill()
+      sprite.addChild(mainFire)
+      this.mainFire = sprite.mainFire = mainFire
 
-    const frontThrusterHeight = 0.4
-    const rearThrusterHeight = 1.5
+      const frontThrusterHeight = 0.4
+      const rearThrusterHeight = 1.5
 
-    const frontLeftFire = new PIXI.Graphics()
-    frontLeftFire.beginFill(0xFFFFFF)
-    frontLeftFire.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
-    frontLeftFire.endFill()
-    frontLeftFire.position = new PIXI.Point(0.1, frontThrusterHeight)
-    frontLeftFire.rotation = Math.PI / 2
-    frontLeftFire.visible = false
-    frontLeftFire.alpha = 0.5
-    sprite.addChild(frontLeftFire)
-    this.frontLeftFire = sprite.frontLeftFire = frontLeftFire
+      const frontLeftFire = new PIXI.Graphics()
+      frontLeftFire.beginFill(0xFFFFFF)
+      frontLeftFire.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
+      frontLeftFire.endFill()
+      frontLeftFire.position = new PIXI.Point(0.1, frontThrusterHeight)
+      frontLeftFire.rotation = Math.PI / 2
+      frontLeftFire.visible = false
+      frontLeftFire.alpha = 0.5
+      sprite.addChild(frontLeftFire)
+      this.frontLeftFire = sprite.frontLeftFire = frontLeftFire
 
-    const rearLeftFire = new PIXI.Graphics()
-    rearLeftFire.beginFill(0xFFFFFF)
-    rearLeftFire.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
-    rearLeftFire.endFill()
-    rearLeftFire.position = new PIXI.Point(0, rearThrusterHeight)
-    rearLeftFire.rotation = Math.PI / 2
-    rearLeftFire.visible = false
-    rearLeftFire.alpha = 0.5
-    sprite.addChild(rearLeftFire)
-    this.rearLeftFire = sprite.rearLeftFire = rearLeftFire
+      const rearLeftFire = new PIXI.Graphics()
+      rearLeftFire.beginFill(0xFFFFFF)
+      rearLeftFire.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
+      rearLeftFire.endFill()
+      rearLeftFire.position = new PIXI.Point(0, rearThrusterHeight)
+      rearLeftFire.rotation = Math.PI / 2
+      rearLeftFire.visible = false
+      rearLeftFire.alpha = 0.5
+      sprite.addChild(rearLeftFire)
+      this.rearLeftFire = sprite.rearLeftFire = rearLeftFire
 
-    const frontRightFire = new PIXI.Graphics()
-    frontRightFire.beginFill(0xFFFFFF)
-    frontRightFire.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
-    frontRightFire.endFill()
-    frontRightFire.position = new PIXI.Point(1.9, frontThrusterHeight)
-    frontRightFire.rotation = -Math.PI / 2
-    frontRightFire.visible = false
-    frontRightFire.alpha = 0.5
-    sprite.addChild(frontRightFire)
-    this.frontRightFire = sprite.frontRightFire = frontRightFire
+      const frontRightFire = new PIXI.Graphics()
+      frontRightFire.beginFill(0xFFFFFF)
+      frontRightFire.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
+      frontRightFire.endFill()
+      frontRightFire.position = new PIXI.Point(1.9, frontThrusterHeight)
+      frontRightFire.rotation = -Math.PI / 2
+      frontRightFire.visible = false
+      frontRightFire.alpha = 0.5
+      sprite.addChild(frontRightFire)
+      this.frontRightFire = sprite.frontRightFire = frontRightFire
 
-    const rearRightFire = new PIXI.Graphics()
-    rearRightFire.beginFill(0xFFFFFF)
-    rearRightFire.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
-    rearRightFire.endFill()
-    rearRightFire.position = new PIXI.Point(2, rearThrusterHeight)
-    rearRightFire.rotation = -Math.PI / 2
-    rearRightFire.visible = false
-    rearRightFire.alpha = 0.5
-    sprite.addChild(rearRightFire)
-    this.rearRightFire = sprite.rearRightFire = rearRightFire
-
+      const rearRightFire = new PIXI.Graphics()
+      rearRightFire.beginFill(0xFFFFFF)
+      rearRightFire.drawRect(-SMALL_THRUSTER_WIDTH / 2, -0.1, SMALL_THRUSTER_WIDTH, SMALL_THRUSTER_LONG)
+      rearRightFire.endFill()
+      rearRightFire.position = new PIXI.Point(2, rearThrusterHeight)
+      rearRightFire.rotation = -Math.PI / 2
+      rearRightFire.visible = false
+      rearRightFire.alpha = 0.5
+      sprite.addChild(rearRightFire)
+      this.rearRightFire = sprite.rearRightFire = rearRightFire
+    }
     sprite.addChild(chasis)
   }
 
@@ -158,9 +163,15 @@ class ShipController {
       if (k === 0) thruster.scale.y *= boost
 
       // randomly select color for flame
-      thruster.tint = Math.random() < 0.5
-        ? FIRE_HIGH
-        : FIRE_LOW
+      if (ship.username === window.theCrown) {
+        thruster.tint = Math.random() < 0.5
+          ? FIRE_HIGH_CROWN
+          : FIRE_LOW_CROWN
+      } else {
+        thruster.tint = Math.random() < 0.5
+          ? FIRE_HIGH
+          : FIRE_LOW
+      }
     })
 
     // active / deactivate support thrusters' sprites

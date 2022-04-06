@@ -23,6 +23,7 @@ class GameController {
   stage: PIXI.Stage
   ships: Array<ShipController>
   foreground: PIXI.Sprite
+  lastTurn: Turn
 
   constructor (game: Game, debug: boolean = false) {
     this.game = game
@@ -88,6 +89,7 @@ class GameController {
   }
 
   update (turn: Turn) {
+    this.lastTurn = turn
     turn.ships.forEach((ship, i) => {
       if (ship == null) {
         const shipController = this.ships[i]
@@ -107,6 +109,10 @@ class GameController {
       shipController.update(ship)
     })
     this.foreground && this.stage.addChild(this.foreground)
+  }
+
+  regenerateAllShipSprites () {
+    this.ships.forEach((s, i) => s && s.regenerateSprites(this.lastTurn.ships[i]))
   }
 }
 
