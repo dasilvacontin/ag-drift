@@ -354,29 +354,36 @@ function renderUsernameAndBestLap (record) {
 
 let lastBestLapsMessage = ''
 async function calculateBestTimes () {
-  let lapResults = await notion.databases.query({
-    database_id: LAP_RESULTS_DATABASE_ID,
-    sorts: [
-      {
-        property: 'Lap time',
-        direction: 'ascending'
-      }
-    ]
-  })
-
+  let crono = Date.now()
+  let lapResults
+  let startCursor
   const bestLaps = {
     'Chicane': {},
     'Hairpin': {},
     'Miracle Park': {}
   }
 
-  lapResults.results.forEach(lap => {
-    const username = lap.properties.Username.rich_text[0].plain_text
-    const trackName = lap.properties['Track name'].rich_text[0].plain_text
-    const lapTime = lap.properties['Lap time'].number
-    const bestLapTimeSoFar = bestLaps[trackName][username] || Infinity
-    if (lapTime < bestLapTimeSoFar) bestLaps[trackName][username] = lapTime
-  })
+  while (!lapResults || lapResults.has_more) {
+    lapResults = await notion.databases.query({
+      database_id: LAP_RESULTS_DATABASE_ID,
+      sorts: [
+        {
+          property: 'Lap time',
+          direction: 'ascending'
+        }
+      ],
+      start_cursor: startCursor
+    })
+    lapResults.results.forEach(lap => {
+      const username = lap.properties.Username.rich_text[0].plain_text
+      const trackName = lap.properties['Track name'].rich_text[0].plain_text
+      const lapTime = lap.properties['Lap time'].number
+      const bestLapTimeSoFar = bestLaps[trackName][username] || Infinity
+      if (lapTime < bestLapTimeSoFar) bestLaps[trackName][username] = lapTime
+    })
+    startCursor = lapResults.next_cursor
+  }
+
   for (let trackName in bestLaps) {
     const bestLapsForRacers = bestLaps[trackName]
     const bestLapsForTrack = []
@@ -403,13 +410,14 @@ async function calculateBestTimes () {
 
   let bestLapsForCurrentTrackMessage = `== Best lap in ${track.name} ==\n`
   const bestLapsForCurrentTrack = bestLaps[track.name]
-  for (let position = 0 ; position < 9; position++) {
+  for (let position = 0; position < 9; position++) {
     const record = bestLapsForCurrentTrack[position]
     bestLapsForCurrentTrackMessage += `${emojiForPosition[position]} ${record ? (record.username + ', ' + utils.timeToString(record.bestLap)) : '-'}\n`
   }
 
   io.emit('system-msg', bestLapsForCurrentTrackMessage)
   setTimeout(calculateBestTimes, 30 * 1000)
+  console.log(`calculateBestTimes took ${Date.now() - crono}`)
 }
 calculateBestTimes()
 
