@@ -62,7 +62,7 @@ class ShipController {
 
     // chasis peak
     chasis.beginFill(0x000000)
-    chasis.fillAlpha = 0.2
+    chasis.fillAlpha = (ship.isABot() ? 0.88 : 0.2)
     chasis.moveTo(0.7, 0.9)
     chasis.lineTo(1.3, 0.9)
     chasis.lineTo(1.5, 2)
