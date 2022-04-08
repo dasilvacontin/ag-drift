@@ -78,8 +78,8 @@ class Turn {
     ships: Array<?Ship>,
     events: Array<?Array<GameEvent>>,
     serverEvents: Array<Object>,
-    state: string = C.GAME_STATE.IN_PROGRESS,
-    counter: number = 0
+    state: string = C.GAME_STATE.START_COUNTDOWN,
+    counter: number = C.START_COUNTDOWN_S
   ) {
     this.ships = ships
     this.events = events
@@ -239,13 +239,10 @@ class Turn {
       input.turnL = false
       input.turnR = false
 
+      playerEvents.forEach(input.applyPlayerEvent, input)
       if (!ship.hasFinishedRace() &&
           (state === C.GAME_STATE.IN_PROGRESS ||
            state === C.GAME_STATE.FINISH_COUNTDOWN)) {
-        // only apply inputs if still racing
-        // otherwise vfx for the boosters will show
-        playerEvents.forEach(input.applyPlayerEvent, input)
-
         if (map.boostDisabled) {
           input.boost = false
         }
@@ -266,7 +263,7 @@ class Turn {
 
         // leaning left by engaging right thruster
         if (input.leanL) body.applyForceLocal([-C.FORCE, 0])
-      } else input = new PlayerInput()
+      }
 
       // air drag
       vec2.scale(body.velocity, body.velocity, 0.99)
@@ -303,7 +300,10 @@ class Turn {
       let laptimes = Array.from(ship.laptimes)
 
       // increase current lap's time
-      if (!ship.hasFinishedRace()) laptimes[currentLaptime] += (dt / 1000)
+      if ((state === C.GAME_STATE.IN_PROGRESS ||
+        state === C.GAME_STATE.FINISH_COUNTDOWN) && !ship.hasFinishedRace()) {
+        laptimes[currentLaptime] += (dt / 1000)
+      }
 
       // detect checkpoint change
       // checkpoint number is descending, lap is indicated as a
@@ -470,6 +470,17 @@ class Turn {
     // game state machine
     counter = Math.ceil(counter - 1)
     switch (state) {
+      case C.GAME_STATE.START_COUNTDOWN:
+        // dont start start countdown unless there's a human
+        if (ships.every(ship => !ship || ship.isABot())) {
+          counter = C.START_COUNTDOWN_S
+        }
+
+        if (counter === 0) {
+          state = C.GAME_STATE.IN_PROGRESS
+        }
+        break
+
       case C.GAME_STATE.FINISH_COUNTDOWN:
         if (counter === 0 ||
             ships.every(ship => !ship || ship.hasFinishedRace() || ship.isABot())) {
@@ -481,7 +492,8 @@ class Turn {
       case C.GAME_STATE.RESULTS_SCREEN:
         if (counter === 0) {
           // game reset
-          state = C.GAME_STATE.IN_PROGRESS
+          state = C.GAME_STATE.START_COUNTDOWN
+          counter = C.START_COUNTDOWN_S
           nextShips.forEach((ship, i) => {
             if (!ship) return
             ship.position = positionForShipId(map, i)

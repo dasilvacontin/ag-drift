@@ -21,11 +21,12 @@ const constants = {
   MAX_LAPS: 5,
 
   GAME_STATE: {
-    COUNTDOWN: 'gameCountdown',
+    START_COUNTDOWN: 'gameStartCountdown',
     IN_PROGRESS: 'gameInProgress',
     FINISH_COUNTDOWN: 'gameFinishCountdown',
     RESULTS_SCREEN: 'gameResultsScreen'
   },
+  START_COUNTDOWN_S: 3 * 1000 / TIME_STEP,
   FINISH_COUNTDOWN_S: 15 * 1000 / TIME_STEP,
   RESULTS_SCREEN_S: 5 * 1000 / TIME_STEP,
 

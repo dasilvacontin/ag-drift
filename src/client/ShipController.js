@@ -13,20 +13,16 @@ const FIRE_HIGH_CROWN = 0xFFFB00
 const FIRE_LOW_CROWN = 0xFFB800
 
 const turnSound = new Howl({
-  urls: ['sounds/turn-brake2.wav'],
+  src: ['sounds/turn-brake2.wav'],
+  preload: true,
   volume: 0.1
 })
 
 const engineSound = new Howl({
-  urls: ['sounds/engine.wav'],
+  src: ['sounds/engine.wav'],
+  preload: true,
   volume: ENGINE_VOL_LOW
 })
-
-function isSoundPaused (sound, nodeId) {
-  const audioNode = sound._audioNode.find((node) => node.id === nodeId)
-  if (audioNode == null) return true // doesn't exist, so consider it paused
-  return audioNode.paused
-}
 
 class ShipController {
   sprite: PIXI.DisplayObject
@@ -140,11 +136,12 @@ class ShipController {
     this.sprite.position = new PIXI.Point(position[0], position[1])
     this.sprite.rotation = angle
 
+    const canMove = !ship.hasFinishedRace()
     // turning sound
-    if (input.turnL || input.turnR) turnSound.play(() => {})
+    if (canMove && (input.turnL || input.turnR)) turnSound.play()
 
     let boost = 0
-    if (input.gas) boost = input.boost ? 2 : 1
+    if (canMove && input.gas) boost = input.boost ? 2 : 1
 
     // thruster animation
     const thrusters = [
@@ -176,24 +173,24 @@ class ShipController {
 
     // active / deactivate support thrusters' sprites
     const timerCount = 7
-    if (input.turnL) this.turnLtimer = timerCount
-    if (input.turnR) this.turnRtimer = timerCount
+    if (canMove && input.turnL) this.turnLtimer = timerCount
+    if (canMove && input.turnR) this.turnRtimer = timerCount
     const displayTurnRight = (this.turnRtimer > 0)
     const displayTurnLeft = (this.turnLtimer > 0)
     this.turnRtimer--
     this.turnLtimer--
 
-    this.frontLeftFire.visible = input.leanR || displayTurnRight
-    this.rearLeftFire.visible = input.leanR || displayTurnLeft
-    this.frontRightFire.visible = input.leanL || displayTurnLeft
-    this.rearRightFire.visible = input.leanL || displayTurnRight
+    this.frontLeftFire.visible = canMove && (input.leanR || displayTurnRight)
+    this.rearLeftFire.visible = canMove && (input.leanR || displayTurnLeft)
+    this.frontRightFire.visible = canMove && (input.leanL || displayTurnLeft)
+    this.rearRightFire.visible = canMove && (input.leanL || displayTurnRight)
     let { engineSoundId } = this
 
-    if (boost > 0 || input.leanL || input.leanR) {
-      if (isSoundPaused(engineSound, engineSoundId) ||
-         engineSound.pos(undefined, engineSoundId) > 0.1) {
+    if (canMove && (boost > 0 || input.leanL || input.leanR)) {
+      if (engineSound.playing(engineSoundId) ||
+        engineSound.seek(undefined, engineSoundId) > 0.1) {
         if (engineSoundId != null) engineSound.stop(engineSoundId)
-        engineSound.play((nodeId) => { this.engineSoundId = nodeId })
+        this.engineSoundId = engineSound.play()
       }
 
       const volume = boost === 2

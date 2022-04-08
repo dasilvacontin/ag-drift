@@ -59,7 +59,7 @@ function resetWorld (world) {
   world.addContactMaterial(C.SHIP_VS_SHIP_CONTACT_MTRL)
 }
 
-function getId (socket: Socket) { return socket.client.id || socket.id }
+function getId (socket: Socket) { return (socket.client && socket.client.id) || socket.id }
 
 function randomColor () {
   const tri1 = Math.floor(Math.random() * 3)
@@ -319,6 +319,18 @@ class Game {
     }
 
     return this.turn
+  }
+
+  isPlayerInLastLap (username) {
+    const ship = this.turn.ships.find(s => s && (s.username === username))
+    if (!ship) return false
+    return (ship.lap === C.MAX_LAPS)
+  }
+
+  lapForPlayer (username) {
+    const ship = this.turn.ships.find(s => s && (s.username === username))
+    if (!ship) return -1
+    return ship.lap
   }
 
   fakeTick () {

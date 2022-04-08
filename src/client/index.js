@@ -18,7 +18,6 @@ const C = require('../common/constants.js')
 const { timeToString, repeat } = require('../common/utils.js')
 
 const DEBUG_MODE = Boolean(localStorage.getItem('DEBUG'))
-const MUSIC_OFF = Boolean(localStorage.getItem('MUSIC_OFF'))
 
 mixpanel.init('e8281c4dfc67e5a7954bcb73f5633584', {
   debug: true,
@@ -33,16 +32,77 @@ mixpanel.init('e8281c4dfc67e5a7954bcb73f5633584', {
 })
 mixpanel.track('Client game load')
 
-let playing = false
 let bgMusic
-let startBackgroundMusic = function (url) {
+let bgMusicFinalLap
+let victoryMusic
+let lapSound
+let setupBackgroundMusic = function (bgMusicUrl, bgMusicFinalLapUrl) {
   bgMusic = new Howl({
-    urls: [url],
-    buffer: true,
-    loop: true
+    src: [bgMusicUrl],
+    preload: true,
+    loop: true,
+    autoplay: false
   })
-  startBackgroundMusic = () => {}
+  if (bgMusicFinalLapUrl) {
+    bgMusicFinalLap = new Howl({
+      src: [bgMusicFinalLapUrl],
+      preload: true,
+      loop: false,
+      autoplay: false
+    })
+  }
+  victoryMusic = new Howl({
+    src: ['sounds/race-end.mp3'],
+    preload: true,
+    loop: false,
+    autoplay: false
+  })
+  lapSound = new Howl({
+    src: ['sounds/lapSound.wav'],
+    preload: true,
+    loop: false,
+    autoplay: false
+  })
+  setupBackgroundMusic = () => {}
 }
+
+let musicBeingPlayed = 'BG_MUSIC'
+let lastLap = null
+function switchBgMusic () {
+  if (!gameController || !gameController.game) return
+  const lap = gameController.game.lapForPlayer(username)
+  if (lastLap === null) lastLap = lap
+
+  if (lastLap < lap && lap >= 2 && lap < C.MAX_LAPS) {
+    lapSound.play()
+  }
+  lastLap = lap
+
+  if (lap < C.MAX_LAPS && musicBeingPlayed !== 'BG_MUSIC') {
+    bgMusicFinalLap && bgMusicFinalLap.stop()
+    victoryMusic.stop()
+    bgMusic.play()
+    musicBeingPlayed = 'BG_MUSIC'
+    console.log('switched to BG_MUSIC')
+  } else if (lap === C.MAX_LAPS && musicBeingPlayed !== 'FINAL_LAP') {
+    victoryMusic.stop()
+    if (bgMusicFinalLap) {
+      bgMusic.stop()
+      bgMusicFinalLap.play()
+    } else {
+      lapSound.play()
+    }
+    musicBeingPlayed = 'FINAL_LAP'
+    console.log('switched to FINAL_LAP')
+  } else if ((lap === C.MAX_LAPS + 1) && musicBeingPlayed !== 'VICTORY_MUSIC') {
+    bgMusic.stop()
+    bgMusicFinalLap && bgMusicFinalLap.stop()
+    victoryMusic.play()
+    musicBeingPlayed = 'VICTORY_MUSIC'
+    console.log('switched to VICTORY_MUSIC')
+  }
+}
+setInterval(switchBgMusic, 100)
 
 function bool (a) {
   return (a === 'true' || a === '1' || a === true || a === 1)
@@ -69,7 +129,12 @@ const TAB_KEYCODE = 9
 const ESC_KEYCODE = 27
 const RETURN_KEYCODE = 13
 const SPACEBAR_KEYCODE = 32
+let isBgMusicPlaying = false
 document.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (isBgMusicPlaying === false && bgMusic) {
+    bgMusic.play()
+    isBgMusicPlaying = true
+  }
   if (e.keyCode === ESC_KEYCODE) loseFocus()
   if (e.keyCode === TAB_KEYCODE) {
     console.log('got tab')
@@ -186,9 +251,6 @@ socket.on('game:pong', (serverNow) => {
   }
   setTimeout(sendPing, 500)
 })
-setInterval(() => {
-  console.log({ ping, clientLead: C.CLIENT_LEAD })
-}, 5 * 1000)
 
 let game : Game, gameController, myShipId
 let debugGame, debugGameController
@@ -515,15 +577,7 @@ socket.on('game:bootstrap', (data) => {
   const lastTick : number = data.lastTick
   myShipId = shipId
 
-  // so that I don't go cray cray with the music
-  if (MUSIC_OFF || (DEBUG_MODE && shipId !== 0)) {
-    console.log('not playing music')
-  } else if (!playing) {
-    console.log('play music')
-    playing = true
-    startBackgroundMusic(track.bgmusic)
-    setTimeout(() => bgMusic.play(), 1000)
-  }
+  setupBackgroundMusic(track.bgmusic, track.bgmusicFinalLap)
 
   game = new Game(track)
   renderer.backgroundColor = track.skyboxColor || 0x000000

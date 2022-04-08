@@ -155,8 +155,59 @@ const track3 = {
   ].map((row) => row.split(''))
 }
 
-const tracks = [track1, track2, track3]
-// const trackChoice = Math.floor(Math.random() * tracks.length)
+function x2 (matrix) {
+  const newMap = []
+  matrix.forEach(row => {
+    const newRow1 = []
+    const newRow2 = []
+    row.forEach(cell => {
+      newRow1.push(cell)
+      newRow1.push(cell)
+      newRow2.push(cell)
+      newRow2.push(cell)
+    })
+    newMap.push(newRow1)
+    newMap.push(newRow2)
+  })
+  return newMap
+}
+
+const track4 = {
+  id: 'Bowser Castle',
+  name: 'Bowser Castle',
+  background: 'images/Bowser_Castle.png',
+  foreground: '',
+  bgmusic: 'sounds/BowserCastle.wav',
+  bgmusicFinalLap: 'sounds/BowserCastleFinalLap.wav',
+  nBots: 0,
+  skyboxColor: 0xC10000,
+  wallColor: 0x000000,
+  boostDisabled: true,
+  startingCheckpoint: '9',
+  messages: [
+    'Welcome to track #4, Bowser Castle, created on April 8, 2022. Boost is currently disabled for this track.'
+  ],
+  grid: x2([
+    '#################',
+    '#         91    #',
+    '# ############  #',
+    '# ############  #',
+    '# ############  #',
+    '# ##   8765432  #',
+    '# ##  ###########',
+    '# ##  ###########',
+    '# ##            #',
+    '# ############  #',
+    '# ############  #',
+    '# ############  #',
+    '# ## # # # ##   #',
+    '#               #',
+    '#### # # # ##   #',
+    '#################'
+  ].map((row) => row.split('')))
+}
+
+const tracks = [track1, track2, track3, track4]
 const trackChoice = (new Date().getDay()) % tracks.length
 const track = tracks[trackChoice]
 
@@ -367,7 +418,8 @@ async function calculateBestTimes () {
   const bestLaps = {
     'Chicane': {},
     'Hairpin': {},
-    'Miracle Park': {}
+    'Miracle Park': {},
+    'Bowser Castle': {}
   }
 
   while (!lapResults || lapResults.has_more) {
