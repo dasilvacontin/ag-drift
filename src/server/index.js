@@ -379,6 +379,12 @@ async function calculateBestTimes () {
           direction: 'ascending'
         }
       ],
+      filter: {
+        property: 'Invalid',
+        checkbox: {
+          equals: false
+        }
+      },
       start_cursor: startCursor
     })
     lapResults.results.forEach(lap => {
