@@ -53,7 +53,7 @@ function positionForShipId (map: Track, shipId: number) {
   let startJ = -1
   for (let i = 0; i < map.grid.length; ++i) {
     for (let j = 0; j < map.grid[i].length; ++j) {
-      if (map.grid[i][j] === '9') {
+      if (map.grid[i][j] === map.startingCheckpoint) {
         startI = i + 0.20
         startJ = j + 1 - 0.25
         break

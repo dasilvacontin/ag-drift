@@ -51,7 +51,7 @@ class GameController {
       game.map.grid.forEach((row, i) => {
         row.forEach((cell, j) => {
           const sprite = new PIXI.Graphics()
-          if (cell !== '9') {
+          if (cell !== game.map.startingCheckpoint) {
             sprite.beginFill(colors[cell])
             sprite.drawRect(0, 0, C.CELL_EDGE, C.CELL_EDGE)
             sprite.endFill()

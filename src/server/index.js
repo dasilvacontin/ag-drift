@@ -69,6 +69,7 @@ const track1 = {
   nBots: 5,
   boostDisabled: false,
   messages: [],
+  startingCheckpoint: '9',
   grid: [
     '###############',
     '# 5  ###  3   #',
@@ -104,6 +105,7 @@ const track2 = {
   nBots: 5,
   boostDisabled: false,
   messages: [],
+  startingCheckpoint: '9',
   grid: [
     '##########################',
     '#   5              6     #',
@@ -131,20 +133,21 @@ const track3 = {
   skyboxColor: 0x000000,
   wallColor: 0x000000,
   boostDisabled: true,
+  startingCheckpoint: '5',
   messages: [
     'Welcome to track #3, Miracle Park, created on Oct 25th 2021. Boost is currently disabled for this track.'
   ],
   grid: [
     '##########################',
     '####;;;;;;;#;;;;;#########',
-    '####;     654   ;#########',
+    '####;      3    ;#########',
     '####; ;;;;;#;;; ;#########',
     '####; ;#######; ;;;;;;;;;#',
     '####; ;#######;         ;#',
     '####; ;#######;;;;;;;;; ;#',
     '####; ;###############; ;#',
     '####; ;;;;;####;;;;;;;; ;#',
-    '####;     789123        ;#',
+    '####;      4512         ;#',
     '####;;;;;;;####;;;;;;;;;;#',
     '##########################',
     '##########################',
