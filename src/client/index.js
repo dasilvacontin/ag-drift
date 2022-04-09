@@ -222,12 +222,16 @@ window.addEventListener('resize', onResize)
 function padIsKeyDown (gamepad, key) {
   if (gamepad == null) return false
   const { buttons } = gamepad
+  if (isBgMusicPlaying === false && bgMusic && (buttons[1].pressed || buttons[2].pressed)) {
+    setInterval(switchBgMusic, 100)
+    isBgMusicPlaying = true
+  }
   const axes = gamepad.axes.map(Math.round)
 
   switch (key) {
     case kbd.RIGHT_ARROW: return axes[0] === 1 || buttons[15] && buttons[15].pressed
     case kbd.LEFT_ARROW: return axes[0] === -1 || buttons[14] && buttons[14].pressed
-    case kbd.UP_ARROW: return buttons[2].pressed
+    case kbd.UP_ARROW: return buttons[2].pressed || buttons[1].pressed
     case 'a': return buttons[4].pressed
     case 'd': return buttons[5].pressed || buttons[6].pressed
     case 's': return buttons[0].pressed
@@ -339,7 +343,7 @@ function gameLoop () {
     }
     hadFinishedRace = ship.hasFinishedRace()
 
-    const gamepad = gamepads[i]
+    const gamepad = gamepads[0]
     const oldInput = oldInputs[i] || new PlayerInput()
     let input = new PlayerInput()
 
