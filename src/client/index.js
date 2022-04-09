@@ -66,7 +66,7 @@ let setupBackgroundMusic = function (bgMusicUrl, bgMusicFinalLapUrl) {
   setupBackgroundMusic = () => {}
 }
 
-let musicBeingPlayed = 'BG_MUSIC'
+let musicBeingPlayed = null
 let lastLap = null
 function switchBgMusic () {
   if (!gameController || !gameController.game) return
@@ -78,7 +78,7 @@ function switchBgMusic () {
   }
   lastLap = lap
 
-  if (lap < C.MAX_LAPS && musicBeingPlayed !== 'BG_MUSIC') {
+  if (lap < C.MAX_LAPS && gameController.game.turn.state === C.GAME_STATE.IN_PROGRESS && musicBeingPlayed !== 'BG_MUSIC') {
     bgMusicFinalLap && bgMusicFinalLap.stop()
     victoryMusic.stop()
     bgMusic.play()
@@ -91,6 +91,7 @@ function switchBgMusic () {
       bgMusicFinalLap.play()
     } else {
       lapSound.play()
+      if (!bgMusic.playing()) bgMusic.play()
     }
     musicBeingPlayed = 'FINAL_LAP'
     console.log('switched to FINAL_LAP')
@@ -102,7 +103,6 @@ function switchBgMusic () {
     console.log('switched to VICTORY_MUSIC')
   }
 }
-setInterval(switchBgMusic, 100)
 
 function bool (a) {
   return (a === 'true' || a === '1' || a === true || a === 1)
@@ -132,7 +132,7 @@ const SPACEBAR_KEYCODE = 32
 let isBgMusicPlaying = false
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (isBgMusicPlaying === false && bgMusic) {
-    bgMusic.play()
+    setInterval(switchBgMusic, 100)
     isBgMusicPlaying = true
   }
   if (e.keyCode === ESC_KEYCODE) loseFocus()
