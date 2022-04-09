@@ -184,7 +184,7 @@ const track4 = {
   bgmusic: 'sounds/BowserCastle.wav',
   bgmusicFinalLap: 'sounds/BowserCastleFinalLap.wav',
   nBots: 0,
-  skyboxColor: 0xC10000,
+  skyboxColor: 0xB00000,
   wallColor: 0x000000,
   boostDisabled: true,
   startingCheckpoint: '9',

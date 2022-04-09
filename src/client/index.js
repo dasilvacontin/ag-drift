@@ -43,9 +43,9 @@ let setupBackgroundMusic = function (config) {
     loop: true,
     autoplay: false
   })
-  if (config.bgMusicFinalLapUrl) {
+  if (config.finalLapMusicURL) {
     bgMusicFinalLap = new Howl({
-      src: [config.bgMusicFinalLapURL],
+      src: [config.finalLapMusicURL],
       preload: true,
       loop: false,
       autoplay: false
