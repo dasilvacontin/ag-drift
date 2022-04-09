@@ -234,7 +234,6 @@ class ShipController {
     }
 
     this.draftVFX.alpha = ship.isDrafting ? 0.24 : 0
-    this.draftVFX.alpha = 0
 
     const speed = vec2.length(ship.velocity)
     this.draftPointSprite.alpha = (speed < 40) ? 0.4 : 0.8
