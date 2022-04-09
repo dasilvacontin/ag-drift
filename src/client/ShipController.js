@@ -33,6 +33,7 @@ class ShipController {
   rearRightFire: PIXI.DisplayObject
   mainFire: PIXI.DisplayObject
   engineSoundId: ?number
+  ship: Ship
 
   turnLtimer: number
   turnRtimer: number
@@ -41,10 +42,12 @@ class ShipController {
     this.regenerateSprites(ship)
     this.turnLtimer = 0
     this.turnRtimer = 0
+    this.ship = ship
   }
 
   regenerateSprites (ship: Ship) {
     if (ship == null) return
+    this.ship = ship
     this.color = ship.color
     // chasis
     const sprite = (this.sprite || new PIXI.Container())
@@ -131,6 +134,7 @@ class ShipController {
 
   update (ship: Ship) {
     if (this.color !== ship.color) this.regenerateSprites(ship)
+    this.ship = ship
 
     const { position, angle, input } = ship
     this.sprite.position = new PIXI.Point(position[0], position[1])

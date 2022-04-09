@@ -330,7 +330,7 @@ class Game {
   lapForPlayer (username) {
     const ship = this.turn.ships.find(s => s && (s.username === username))
     if (!ship) return -1
-    return ship.lap
+    return ship.currentLaptime
   }
 
   fakeTick () {

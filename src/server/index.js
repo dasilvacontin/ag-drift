@@ -66,10 +66,12 @@ const track1 = {
   background: 'images/track1-background.png',
   foreground: 'images/track1-foreground.png',
   bgmusic: 'sounds/POL-night-in-motion-long.wav',
+  finishedRaceMusic: 'sounds/POL-night-in-motion-stinger.wav',
   nBots: 5,
   boostDisabled: false,
   messages: [],
   startingCheckpoint: '9',
+  zoom: 12,
   grid: [
     '###############',
     '# 5  ###  3   #',
@@ -106,6 +108,7 @@ const track2 = {
   boostDisabled: false,
   messages: [],
   startingCheckpoint: '9',
+  zoom: 12,
   grid: [
     '##########################',
     '#   5              6     #',
@@ -137,6 +140,7 @@ const track3 = {
   messages: [
     'Welcome to track #3, Miracle Park, created on Oct 25th 2021. Boost is currently disabled for this track.'
   ],
+  zoom: 12,
   grid: [
     '##########################',
     '####;;;;;;;#;;;;;#########',
@@ -173,8 +177,8 @@ function x2 (matrix) {
 }
 
 const track4 = {
-  id: 'Bowser Castle',
-  name: 'Bowser Castle',
+  id: 'Bowser Castle v0.1',
+  name: 'Bowser Castle v0.1',
   background: 'images/Bowser_Castle.png',
   foreground: '',
   bgmusic: 'sounds/BowserCastle.wav',
@@ -184,6 +188,7 @@ const track4 = {
   wallColor: 0x000000,
   boostDisabled: true,
   startingCheckpoint: '9',
+  zoom: 8,
   messages: [
     'Welcome to track #4, Bowser Castle, created on April 8, 2022. Boost is currently disabled for this track.'
   ],
@@ -207,7 +212,7 @@ const track4 = {
   ].map((row) => row.split('')))
 }
 
-const tracks = [track1, track2, track3, track4]
+const tracks = [track1, track2, track3]
 const trackChoice = (new Date().getDay()) % tracks.length
 const track = tracks[trackChoice]
 
@@ -419,7 +424,7 @@ async function calculateBestTimes () {
     'Chicane': {},
     'Hairpin': {},
     'Miracle Park': {},
-    'Bowser Castle': {}
+    'Bowser Castle v0.1': {}
   }
 
   while (!lapResults || lapResults.has_more) {
@@ -443,6 +448,7 @@ async function calculateBestTimes () {
       const username = lap.properties.Username.rich_text[0].plain_text
       const trackName = lap.properties['Track name'].rich_text[0].plain_text
       const lapTime = lap.properties['Lap time'].number
+      if (!bestLaps[trackName]) return
       const bestLapTimeSoFar = bestLaps[trackName][username] || Infinity
       if (lapTime < bestLapTimeSoFar) bestLaps[trackName][username] = lapTime
     })
@@ -479,10 +485,11 @@ async function calculateBestTimes () {
     const record = bestLapsForCurrentTrack[position]
     bestLapsForCurrentTrackMessage += `${emojiForPosition[position]} ${record ? (record.username + ', ' + utils.timeToString(record.bestLap)) : '-'}\n`
   }
-
   io.emit('system-msg', bestLapsForCurrentTrackMessage)
-  lastCrownOwner = bestLapsForCurrentTrack[0].username
+
+  lastCrownOwner = bestLapsForCurrentTrack.length > 0 ? bestLapsForCurrentTrack[0].username : ''
   io.emit('the-crown', lastCrownOwner)
+
   setTimeout(calculateBestTimes, 30 * 1000)
   console.log(`calculateBestTimes took ${Date.now() - crono}`)
 }

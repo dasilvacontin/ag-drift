@@ -34,25 +34,25 @@ mixpanel.track('Client game load')
 
 let bgMusic
 let bgMusicFinalLap
-let victoryMusic
+let finishedRaceMusic
 let lapSound
-let setupBackgroundMusic = function (bgMusicUrl, bgMusicFinalLapUrl) {
+let setupBackgroundMusic = function (config) {
   bgMusic = new Howl({
-    src: [bgMusicUrl],
+    src: [config.bgmusicURL],
     preload: true,
     loop: true,
     autoplay: false
   })
-  if (bgMusicFinalLapUrl) {
+  if (config.bgMusicFinalLapUrl) {
     bgMusicFinalLap = new Howl({
-      src: [bgMusicFinalLapUrl],
+      src: [config.bgMusicFinalLapURL],
       preload: true,
       loop: false,
       autoplay: false
     })
   }
-  victoryMusic = new Howl({
-    src: ['sounds/race-end.mp3'],
+  finishedRaceMusic = new Howl({
+    src: [config.finishedRaceMusicURL || 'sounds/race-end.mp3'],
     preload: true,
     loop: false,
     autoplay: false
@@ -80,12 +80,16 @@ function switchBgMusic () {
 
   if (lap < C.MAX_LAPS && gameController.game.turn.state === C.GAME_STATE.IN_PROGRESS && musicBeingPlayed !== 'BG_MUSIC') {
     bgMusicFinalLap && bgMusicFinalLap.stop()
-    victoryMusic.stop()
+    finishedRaceMusic.stop()
     bgMusic.play()
     musicBeingPlayed = 'BG_MUSIC'
     console.log('switched to BG_MUSIC')
+    const player = gameController.ships[myShipId]
+    if (camera && player) {
+      camera.rotation = -player.sprite.rotation
+    }
   } else if (lap === C.MAX_LAPS && musicBeingPlayed !== 'FINAL_LAP') {
-    victoryMusic.stop()
+    finishedRaceMusic.stop()
     if (bgMusicFinalLap) {
       bgMusic.stop()
       bgMusicFinalLap.play()
@@ -98,7 +102,7 @@ function switchBgMusic () {
   } else if ((lap === C.MAX_LAPS + 1) && musicBeingPlayed !== 'VICTORY_MUSIC') {
     bgMusic.stop()
     bgMusicFinalLap && bgMusicFinalLap.stop()
-    victoryMusic.play()
+    finishedRaceMusic.play()
     musicBeingPlayed = 'VICTORY_MUSIC'
     console.log('switched to VICTORY_MUSIC')
   }
@@ -199,11 +203,11 @@ socket.on('msg', (username: string, color: number, text: string) => {
 socket.on('system-msg', (text) => addSystemMessage(text))
 socket.on('the-crown', (username) => {
   window.theCrown = username
-  gameController.regenerateAllShipSprites()
+  gameController && gameController.regenerateAllShipSprites()
 })
 
 const camera = new PIXI.Container()
-const ZOOM = 12
+let cameraZoom = 12
 
 function onResize () {
   const width = window.innerWidth
@@ -429,6 +433,17 @@ function gameLoop () {
   const player = gameController.ships[myShipId]
   if (player) {
     const { stage } = gameController
+    const currentZoom = cameraZoom
+    const velocity = player.ship.velocity
+    const speed = Math.sqrt(Math.pow(velocity[0], 2) + Math.pow(velocity[1], 2))
+    const speedFactor = (Math.max(0, speed - 40) / 80)
+    const targetZoom = 12 - 4 * speedFactor
+    const newZoom = currentZoom + ((targetZoom - currentZoom) / 15)
+    cameraZoom = newZoom
+    gameController.stage.scale = {
+      x: cameraZoom,
+      y: cameraZoom
+    }
     stage.position = new PIXI.Point(
       halfWidth - player.sprite.position.x * stage.scale.x,
       halfHeight - player.sprite.position.y * stage.scale.y)
@@ -442,6 +457,7 @@ function gameLoop () {
       camera.rotation += deg360
     }
     camera.rotation += (-player.sprite.rotation - camera.rotation) / 15
+    // camera.position.y += speedFactor * (window.innerHeight / 5)
   }
 
   renderer.render(camera)
@@ -572,12 +588,17 @@ let isFirstLoad = true
 socket.on('game:bootstrap', (data) => {
   const initialTurn : number = data.initialTurn
   const track : Track = data.map
+  cameraZoom = track.zoom
   const turnsSlice : Array<Turn> = data.turnsSlice
   const shipId : number = data.shipId
   const lastTick : number = data.lastTick
   myShipId = shipId
 
-  setupBackgroundMusic(track.bgmusic, track.bgmusicFinalLap)
+  setupBackgroundMusic({
+    bgmusicURL: track.bgmusic,
+    finalLapMusicURL: track.bgmusicFinalLap,
+    finishedRaceMusicURL: track.finishedRaceMusic
+  })
 
   game = new Game(track)
   renderer.backgroundColor = track.skyboxColor || 0x000000
@@ -601,8 +622,8 @@ socket.on('game:bootstrap', (data) => {
     camera.removeChild(gameController.stage)
   }
 
-  gameController = new GameController(game)
-  gameController.stage.scale = { x: ZOOM, y: ZOOM }
+  window.gameController = gameController = new GameController(game)
+  gameController.stage.scale = { x: cameraZoom, y: cameraZoom }
   camera.addChild(gameController.stage)
 
   if (DEBUG_MODE) {
