@@ -211,6 +211,7 @@ const track4 = {
     '#################'
   ].map((row) => row.split('')))
 }
+console.log(track4)
 
 const tracks = [track1, track2, track3]
 const trackChoice = (new Date().getDay()) % tracks.length
