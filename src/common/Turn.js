@@ -263,6 +263,8 @@ class Turn {
 
         // leaning left by engaging right thruster
         if (input.leanL) body.applyForceLocal([-C.FORCE, 0])
+      } else if (ship.isABot() && state !== C.GAME_STATE.START_COUNTDOWN) {
+        input = new PlayerInput()
       }
 
       // air drag
