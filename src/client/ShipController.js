@@ -2,6 +2,7 @@
 const PIXI = require('pixi.js')
 const Ship = require('../common/Ship.js')
 const { Howl } = require('howler')
+const { vec2 } = require('p2')
 
 const SMALL_THRUSTER_WIDTH = 0.5
 const SMALL_THRUSTER_LONG = 0.4
@@ -130,6 +131,32 @@ class ShipController {
       this.rearRightFire = sprite.rearRightFire = rearRightFire
     }
     sprite.addChild(chasis)
+    if (this.draftVFX) sprite.addChild(this.draftVFX)
+
+    // draft point
+    if (this.draftPointSprite != null) return
+    this.draftPointSprite = new PIXI.Graphics()
+    this.draftPointSprite.beginFill(0x00ffff)
+    this.draftPointSprite.drawCircle(0, 0, 2)
+    this.draftPointSprite.endFill()
+    this.draftPointSprite.alpha = 0.2
+    this.draftPointSprite2 = new PIXI.Graphics()
+    this.draftPointSprite2.beginFill(0x00ffff)
+    this.draftPointSprite2.drawCircle(0, 0, 2)
+    this.draftPointSprite2.endFill()
+    this.draftPointSprite2.alpha = 0.2
+    this.draftPointSprite3 = new PIXI.Graphics()
+    this.draftPointSprite3.beginFill(0x00ffff)
+    this.draftPointSprite3.drawCircle(0, 0, 2)
+    this.draftPointSprite3.endFill()
+    this.draftPointSprite3.alpha = 0.2
+
+    this.draftVFX = new PIXI.Graphics()
+    this.draftVFX.beginFill(0x44E9FF)
+    this.draftVFX.drawCircle(1, 1, 2)
+    this.draftVFX.endFill()
+    this.draftVFX.alpha = 0.24
+    sprite.addChild(this.draftVFX)
   }
 
   update (ship: Ship) {
@@ -205,6 +232,26 @@ class ShipController {
       engineSound.stop(engineSoundId)
       this.engineSoundId = null
     }
+
+    this.draftVFX.alpha = ship.isDrafting ? 0.24 : 0
+
+    const speed = vec2.length(ship.velocity)
+    this.draftPointSprite.alpha = (speed < 40) ? 0.4 : 0.8
+
+    let draftPoint = vec2.clone(ship.velocity)
+    draftPoint = vec2.scale(draftPoint, draftPoint, -0.05)
+    draftPoint = vec2.add(draftPoint, draftPoint, ship.position)
+    this.draftPointSprite.position = new PIXI.Point(draftPoint[0], draftPoint[1]) // new PIXI.Point(draftPoint[0], draftPoint[1])
+
+    draftPoint = vec2.clone(ship.velocity)
+    draftPoint = vec2.scale(draftPoint, draftPoint, -0.1)
+    draftPoint = vec2.add(draftPoint, draftPoint, ship.position)
+    this.draftPointSprite2.position = new PIXI.Point(draftPoint[0], draftPoint[1]) // new PIXI.Point(draftPoint[0], draftPoint[1])
+
+    draftPoint = vec2.clone(ship.velocity)
+    draftPoint = vec2.scale(draftPoint, draftPoint, -0.15)
+    draftPoint = vec2.add(draftPoint, draftPoint, ship.position)
+    this.draftPointSprite3.position = new PIXI.Point(draftPoint[0], draftPoint[1]) // new PIXI.Point(draftPoint[0], draftPoint[1])
   }
 }
 

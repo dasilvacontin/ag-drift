@@ -208,7 +208,8 @@ class Turn {
             checkpoint: 1,
             lap: 0,
             currentLaptime: 0,
-            laptimes: [0]
+            laptimes: [0],
+            isDrafting: false
           })
           ships[shipId] = ship
 
@@ -222,6 +223,7 @@ class Turn {
     })
 
     // apply player inputs
+    const isShipDrafting = []
     ships.forEach((ship, i) => {
       if (ship == null) return
 
@@ -268,7 +270,37 @@ class Turn {
       }
 
       // air drag
-      vec2.scale(body.velocity, body.velocity, 0.99)
+      let isDrafting = Boolean(ships.find(function (otherShip, j) {
+        if (otherShip == null) return false
+        if (i === j) return false
+
+        const speed = vec2.length(otherShip.velocity)
+        if (speed < 40) return false
+
+        let draftPoint = vec2.clone(otherShip.velocity)
+        draftPoint = vec2.scale(draftPoint, draftPoint, -0.05)
+        draftPoint = vec2.add(draftPoint, draftPoint, otherShip.position)
+
+        let distanceToDraftPoint = vec2.distance(ship.position, draftPoint)
+        if (distanceToDraftPoint < 2) return true
+
+        draftPoint = vec2.clone(otherShip.velocity)
+        draftPoint = vec2.scale(draftPoint, draftPoint, -0.1)
+        draftPoint = vec2.add(draftPoint, draftPoint, otherShip.position)
+
+        distanceToDraftPoint = vec2.distance(ship.position, draftPoint)
+        if (distanceToDraftPoint < 2) return true
+
+        draftPoint = vec2.clone(otherShip.velocity)
+        draftPoint = vec2.scale(draftPoint, draftPoint, -0.15)
+        draftPoint = vec2.add(draftPoint, draftPoint, otherShip.position)
+
+        distanceToDraftPoint = vec2.distance(ship.position, draftPoint)
+        if (distanceToDraftPoint < 2) return true
+        return false
+      }))
+      vec2.scale(body.velocity, body.velocity, isDrafting ? 0.993 : 0.99)
+      isShipDrafting[i] = isDrafting
 
       // ground drag
       const ci = Math.floor((body.position[1] + C.CELL_EDGE / 2) / C.CELL_EDGE)
@@ -465,7 +497,8 @@ class Turn {
         checkpoint,
         lap: ship.lap,
         currentLaptime: ship.currentLaptime,
-        laptimes
+        laptimes,
+        isDrafting: isShipDrafting[i]
       })
     })
 

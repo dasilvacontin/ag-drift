@@ -14,6 +14,7 @@ class Ship {
   lap: number
   currentLaptime: number
   laptimes: Array<number>
+  isDrafting: Boolean
 
   constructor ({
     position,
@@ -25,7 +26,8 @@ class Ship {
     checkpoint,
     lap,
     currentLaptime,
-    laptimes
+    laptimes,
+    isDrafting
   } : {
     position: vec2,
     velocity: vec2,
@@ -36,7 +38,8 @@ class Ship {
     checkpoint: number,
     lap: number,
     currentLaptime: number,
-    laptimes: Array<number>
+    laptimes: Array<number>,
+    isDrafting: Boolean
   }) {
     this.position = position
     this.velocity = velocity
@@ -48,6 +51,7 @@ class Ship {
     this.lap = lap
     this.currentLaptime = currentLaptime
     this.laptimes = laptimes
+    this.isDrafting = Boolean(isDrafting)
   }
 
   hasFinishedRace () {

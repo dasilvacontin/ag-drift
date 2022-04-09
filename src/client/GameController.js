@@ -104,6 +104,9 @@ class GameController {
       if (shipController == null) {
         shipController = new ShipController(ship)
         this.stage.addChild(shipController.sprite)
+        // this.stage.addChild(shipController.draftPointSprite)
+        // this.stage.addChild(shipController.draftPointSprite2)
+        // this.stage.addChild(shipController.draftPointSprite3)
         this.ships[i] = shipController
       }
       shipController.update(ship)
