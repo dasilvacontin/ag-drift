@@ -665,7 +665,9 @@ socket.on('game:bootstrap', (data) => {
   if (isFirstLoad) {
     isFirstLoad = false
     addSystemMessage(`Welcome to ag-drift! 🎶
-    April 6, 2022: Added dynamic best lap leaderboards. Enjoy!`)
+    April 6, 2022: Added dynamic best lap leaderboards.
+    April 9, 2022: Added Drafting game mechanic
+    Enjoy!`)
     if (track.messages) {
       track.messages.forEach(addSystemMessage)
     }
