@@ -73,38 +73,52 @@ function switchBgMusic () {
   const lap = gameController.game.lapForPlayer(username)
   if (lastLap === null) lastLap = lap
 
-  if (lastLap < lap && lap >= 2 && lap < C.MAX_LAPS) {
+  if (lastLap < lap && lap >= 2 && lap <= C.MAX_LAPS) {
     lapSound.play()
   }
   lastLap = lap
 
-  if (lap < C.MAX_LAPS && gameController.game.turn.state === C.GAME_STATE.IN_PROGRESS && musicBeingPlayed !== 'BG_MUSIC') {
-    bgMusicFinalLap && bgMusicFinalLap.stop()
-    finishedRaceMusic.stop()
-    bgMusic.play()
-    musicBeingPlayed = 'BG_MUSIC'
-    console.log('switched to BG_MUSIC')
-    const player = gameController.ships[myShipId]
-    if (camera && player) {
-      camera.rotation = -player.sprite.rotation
-    }
-  } else if (lap === C.MAX_LAPS && musicBeingPlayed !== 'FINAL_LAP') {
-    finishedRaceMusic.stop()
-    if (bgMusicFinalLap) {
+  switch (gameController.game.turn.state) {
+    case C.GAME_STATE.START_COUNTDOWN:
       bgMusic.stop()
-      bgMusicFinalLap.play()
-    } else {
-      lapSound.play()
-      if (!bgMusic.playing()) bgMusic.play()
-    }
-    musicBeingPlayed = 'FINAL_LAP'
-    console.log('switched to FINAL_LAP')
-  } else if ((lap === C.MAX_LAPS + 1) && musicBeingPlayed !== 'VICTORY_MUSIC') {
-    bgMusic.stop()
-    bgMusicFinalLap && bgMusicFinalLap.stop()
-    finishedRaceMusic.play()
-    musicBeingPlayed = 'VICTORY_MUSIC'
-    console.log('switched to VICTORY_MUSIC')
+      bgMusicFinalLap && bgMusicFinalLap.stop()
+      musicBeingPlayed = ''
+      const player = gameController.ships[myShipId]
+      if (camera && player) {
+        camera.rotation = -player.sprite.rotation
+      }
+      break
+
+    case C.GAME_STATE.IN_PROGRESS:
+    case C.GAME_STATE.FINISH_COUNTDOWN:
+      if (lap < C.MAX_LAPS && musicBeingPlayed !== 'BG_MUSIC') {
+        bgMusicFinalLap && bgMusicFinalLap.stop()
+        bgMusic.play()
+        musicBeingPlayed = 'BG_MUSIC'
+      } else if (lap === C.MAX_LAPS && musicBeingPlayed !== 'FINAL_LAP') {
+        if (bgMusicFinalLap) {
+          bgMusic.stop()
+          bgMusicFinalLap.play()
+        }
+        musicBeingPlayed = 'FINAL_LAP'
+      } else if ((lap === C.MAX_LAPS + 1) && musicBeingPlayed !== 'VICTORY_MUSIC') {
+        bgMusic.stop()
+        bgMusicFinalLap && bgMusicFinalLap.stop()
+        finishedRaceMusic.play()
+        musicBeingPlayed = 'VICTORY_MUSIC'
+      }
+      break
+
+    case C.GAME_STATE.RESULTS_SCREEN:
+      if (musicBeingPlayed !== 'RESULTS_SCREEN_MUSIC') {
+        bgMusic.stop()
+        bgMusicFinalLap && bgMusicFinalLap.stop()
+        if (lap === C.MAX_LAPS + 1 && musicBeingPlayed !== 'VICTORY_MUSIC') {
+          finishedRaceMusic.play()
+        }
+        musicBeingPlayed = 'RESULTS_SCREEN_MUSIC'
+      }
+      break
   }
 }
 
@@ -441,7 +455,7 @@ function gameLoop () {
     const velocity = player.ship.velocity
     const speed = Math.sqrt(Math.pow(velocity[0], 2) + Math.pow(velocity[1], 2))
     const speedFactor = (Math.max(0, speed - 40) / 80)
-    const targetZoom = 12 - 4 * speedFactor
+    const targetZoom = 12 - 5 * speedFactor
     const newZoom = currentZoom + ((targetZoom - currentZoom) / 15)
     cameraZoom = newZoom
     gameController.stage.scale = {
