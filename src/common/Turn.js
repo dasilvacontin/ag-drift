@@ -392,6 +392,16 @@ class Turn {
                   },
                   'Lap time': {
                     number: ship.laptimes[ship.currentLaptime]
+                  },
+                  'Version': {
+                    rich_text: [
+                      {
+                        type: 'text',
+                        text: {
+                          content: 'v1.1 – Drafting'
+                        }
+                      }
+                    ]
                   }
                 }
               })
