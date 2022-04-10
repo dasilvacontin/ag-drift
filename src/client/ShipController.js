@@ -27,6 +27,10 @@ const engineSound = new Howl({
 
 class ShipController {
   sprite: PIXI.DisplayObject
+  draftVFX: PIXI.DisplayObject
+  draftPointSprite: PIXI.DisplayObject
+  draftPointSprite2: PIXI.DisplayObject
+  draftPointSprite3: PIXI.DisplayObject
   color: number
   frontLeftFire: PIXI.DisplayObject
   rearLeftFire: PIXI.DisplayObject
