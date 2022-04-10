@@ -68,6 +68,7 @@ let setupBackgroundMusic = function (config) {
 
 let musicBeingPlayed = null
 let lastLap = null
+const TWITTER_EVENT_RACE_COMPLETE = 'o8dsg'
 function switchBgMusic () {
   if (!gameController || !gameController.game) return
   const lap = gameController.game.lapForPlayer(username)
@@ -106,6 +107,7 @@ function switchBgMusic () {
         bgMusicFinalLap && bgMusicFinalLap.stop()
         finishedRaceMusic.play()
         musicBeingPlayed = 'VICTORY_MUSIC'
+        twttr.conversion.trackPid(TWITTER_EVENT_RACE_COMPLETE, { tw_sale_amount: 0, tw_order_quantity: 0 })
       }
       break
 
@@ -115,6 +117,7 @@ function switchBgMusic () {
         bgMusicFinalLap && bgMusicFinalLap.stop()
         if (lap === C.MAX_LAPS + 1 && musicBeingPlayed !== 'VICTORY_MUSIC') {
           finishedRaceMusic.play()
+          twttr.conversion.trackPid(TWITTER_EVENT_RACE_COMPLETE, { tw_sale_amount: 0, tw_order_quantity: 0 })
         }
         musicBeingPlayed = 'RESULTS_SCREEN_MUSIC'
       }
