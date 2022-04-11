@@ -59,7 +59,7 @@ class Ship {
   }
 
   isABot () {
-    return (this.username.length === 4 && this.username.startsWith('bot'))
+    return (this.username.startsWith('bot') && this.username[4] === ' ')
   }
 
   bestLap () {

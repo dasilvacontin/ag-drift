@@ -37,8 +37,7 @@ const Game = require('../common/Game.js')
 const C = require('../common/constants.js')
 
 app.get('*', function (req, res, next) {
-  const host = req.get('host')
-  console.log('host', host)
+  // const host = req.get('host')
   next()
   /*
   if (condition) {
@@ -72,6 +71,7 @@ const track1 = {
   messages: [],
   startingCheckpoint: '9',
   zoom: 12,
+  aiType: 'ml',
   grid: [
     '###############',
     '# 5  ###  3   #',
@@ -79,6 +79,15 @@ const track1 = {
     '#6########### #',
     '# ##########  #',
     '# 7   8  91   #',
+    '###############'
+  ].map((row) => row.split('')),
+  aiGrid: [
+    '###############',
+    '#rrdd###rrrrdd#',
+    '#u#rrrrru###rd#',
+    '#u###########d#',
+    '#u##########dl#',
+    '#ullllllllllll#',
     '###############'
   ].map((row) => row.split(''))
 }
@@ -109,6 +118,7 @@ const track2 = {
   messages: [],
   startingCheckpoint: '9',
   zoom: 12,
+  aiType: 'grid',
   grid: [
     '##########################',
     '#   5              6     #',
@@ -123,6 +133,21 @@ const track2 = {
     '##        3              #',
     '##########################',
     '#################  #######'
+  ].map((row) => row.split('')),
+  aiGrid: [
+    '##########################',
+    '#ddllllllllllllllllllllll#',
+    '#dd##################ulll#',
+    '#dd##rrrrrrrrrrrrrrrruuul#',
+    '#dd##rru##################',
+    '#dd##uuulllllllllllllllll#',
+    '#dd####################ul#',
+    '#rd#####  #######  ##rruu#',
+    '#rrd################ruuuu#',
+    '#rrrrrrrrrrrrrrrrrrruuuuu#',
+    '##rrrrrrrrrrrrrrrrrrruuuu#',
+    '##########################',
+    '#################  #######'
   ].map((row) => row.split(''))
 }
 
@@ -132,15 +157,16 @@ const track3 = {
   background: '',
   foreground: '',
   bgmusic: 'sounds/POL-miracle-park-short.wav',
-  nBots: 5,
+  nBots: 8,
   skyboxColor: 0x000000,
   wallColor: 0x000000,
   boostDisabled: true,
-  startingCheckpoint: '5',
+  startingCheckpoint: '1',
   messages: [
     'Welcome to track #3, Miracle Park, created on Oct 25th 2021. Boost is currently disabled for this track.'
   ],
   zoom: 12,
+  aiType: 'grid',
   grid: [
     '##########################',
     '####;;;;;;;#;;;;;#########',
@@ -153,6 +179,22 @@ const track3 = {
     '####; ;;;;;####;;;;;;;; ;#',
     '####;      341          ;#',
     '####;;;;;;;####;;;;;;;;;;#',
+    '##########################',
+    '##########################',
+    '##########################'
+  ].map((row) => row.split('')),
+  aiGrid: [
+    '##########################',
+    '####ddddddd#ddddd#########',
+    '####rrrrrrrrrdddd#########',
+    '####rruuuuu#urrdd#########',
+    '####rru#######rrddddddddl#',
+    '####rul#######rrrrrrrdddl#',
+    '####rul#######uuuuuuurrdl#',
+    '####rul###############ddl#',
+    '####rullldd####ddddddddll#',
+    '####ruuuullllllllllllllll#',
+    '####uuuuuuu####uuuuuuuuuu#',
     '##########################',
     '##########################',
     '##########################'
@@ -183,7 +225,7 @@ const track4 = {
   foreground: '',
   bgmusic: 'sounds/BowserCastle.wav',
   bgmusicFinalLap: 'sounds/BowserCastleFinalLap.wav',
-  nBots: 0,
+  nBots: 10,
   skyboxColor: 0xB00000,
   wallColor: 0x000000,
   boostDisabled: true,
@@ -192,28 +234,62 @@ const track4 = {
   messages: [
     'Welcome to track #4, Bowser Castle, created on April 8, 2022. Boost is currently disabled for this track.'
   ],
+  aiType: 'grid',
   grid: x2([
     '#################',
     '#         91    #',
+    '#8############  #',
     '# ############  #',
     '# ############  #',
-    '# ############  #',
-    '# ##   8765432  #',
+    '# ##  2         #',
     '# ##  ###########',
-    '# ##  ###########',
-    '# ##            #',
+    '# ##33###########',
+    '# ##         4  #',
     '# ############  #',
     '# ############  #',
-    '# ############  #',
+    '# ############55#',
     '# ## # # # ##   #',
-    '#               #',
+    '# 7         6   #',
     '#### # # # ##   #',
     '#################'
-  ].map((row) => row.split('')))
+  ].map((row) => row.split(''))),
+  aiGrid: [
+    '##################################',
+    '##################################',
+    '##ddddddllllllllllllllllllllllll##',
+    '##ddllllllllllllllllllllllllllll##',
+    '##dd########################ulll##',
+    '##dd########################uull##',
+    '##dd########################uull##',
+    '##dd########################uuuu##',
+    '##dd########################uuuu##',
+    '##dd########################uuuu##',
+    '##dd####rrrrrrrrrrrrrrrrrrrruuuu##',
+    '##dd####rrrrrrrrrrrrrrrruuuuuuuu##',
+    '##dd####rrru######################',
+    '##dd####rruu######################',
+    '##dd####uuuu######################',
+    '##dd####uuuu######################',
+    '##dd####uuuullllllllllllllllllll##',
+    '##dd####uuuuuuulllllllllllllllll##',
+    '##dd########################ulll##',
+    '##dd########################uull##',
+    '##dd########################uull##',
+    '##dd########################uuuu##',
+    '##dd########################uuuu##',
+    '##dd########################uuuu##',
+    '##rd####dd##dd##dd##dd####rruuuu##',
+    '##rd####dd##dd##dd##dd####ruuuuu##',
+    '##rrrrrrrrrrrrrrrrrrrrrrrruuuuuu##',
+    '##rrrrrrrrrrrrrrrrrrrrrruuuuuuuu##',
+    '########uu##uu##uu##uu####uuuuuu##',
+    '########uu##uu##uu##uu####uuuuuu##',
+    '##################################',
+    '##################################'
+  ]
 }
-console.log(track4)
 
-const tracks = [track1, track2, track3]
+const tracks = [track1, track2, track3, track4]
 const trackChoice = (new Date().getDay()) % tracks.length
 const track = tracks[trackChoice]
 
@@ -236,12 +312,16 @@ function logMessage (msg) {
 const bots = []
 function createNBots (n) {
   for (let i = 0; i < n; ++i) {
+    let aiType = Math.random() < 0.5 ? 'grid' : 'ml'
+    aiType = track.aiType
     const aiSocket = {
-      id: `bot${i}`,
+      id: `bot${i} ${aiType}`,
       client: {},
-      emit: _ => {}
+      emit: _ => {},
+      version: aiType,
+      canBoost: false
     }
-    game.onPlayerJoin(aiSocket, `bot${i}`)
+    game.onPlayerJoin(aiSocket, aiSocket.id)
     bots.push(aiSocket)
   }
 }
@@ -301,16 +381,46 @@ function aiMakeMove (aiSocket, i) {
     events.push(new PlayerEvent(C.PLAYER_EVENT.GAS, false))
     oldInputs[i] = new PlayerInput()
   } else {
-    const closestMemory = findClosestMemory(ship)
-    if (!closestMemory) return
-
     const shipAngle = getAngle(ship.angle)
     let input = new PlayerInput()
-    input = new PlayerInput(closestMemory[3])
-    const angle = closestMemory[2]
-    input.turnL = ((shipAngle - 1) % 4 === angle) ||
-                  ((shipAngle - 2) % 4 === angle)
-    input.turnR = ((shipAngle + 1) % 4 === angle)
+    aiSocket.prevPosition = aiSocket.prevPosition || vec2.clone(ship.position)
+    const distanceMoved = vec2.distance(ship.position, aiSocket.prevPosition)
+    aiSocket.prevPosition = vec2.clone(ship.position)
+
+    // check if it moved to avoid ml AI getting stuck, fallback to grid ai
+    if (aiSocket.version === 'ml' && !(game.turn.state !== C.GAME_STATE.START_COUNTDOWN && distanceMoved === 0)) {
+      const closestMemory = findClosestMemory(ship)
+      if (!closestMemory) return
+      input = new PlayerInput(closestMemory[3])
+      const angle = closestMemory[2]
+      input.turnL = ((shipAngle - 1 + 4) % 4 === angle) ||
+                    ((shipAngle - 2 + 4) % 4 === angle)
+      input.turnR = ((shipAngle + 1 + 4) % 4 === angle)
+    } else {
+      const ci = Math.floor((ship.position[1] + C.CELL_EDGE / 2) / C.CELL_EDGE)
+      const cj = Math.floor((ship.position[0] + C.CELL_EDGE / 2) / C.CELL_EDGE)
+      const cell = ((track.aiGrid[ci] || {})[cj] || ' ')
+      let angle
+      switch (cell) {
+        case 'u':
+          angle = 0
+          break
+        case 'r':
+          angle = 1
+          break
+        case 'l':
+          angle = 3
+          break
+        case 'd':
+          angle = 2
+          break
+      }
+      input.gas = true
+      input.turnL = ((shipAngle - 1 + 4) % 4 === angle) ||
+                    ((shipAngle - 2 + 4) % 4 === angle)
+      input.turnR = ((shipAngle + 1 + 4) % 4 === angle)
+      input.boost = aiSocket.canBoost
+    }
 
     // generate PlayerEvents from input - oldInput
     if (input.turnL && !oldInput.turnL) {
@@ -339,6 +449,10 @@ function aiMakeMove (aiSocket, i) {
   }
 }
 
+function purify (username) {
+  return username.slice(0, 20).replace(/卐/g, '')
+}
+
 io.on('connection', function (socket) {
   let username
   socket.on('game:join', (givenUsername, debug) => {
@@ -346,7 +460,7 @@ io.on('connection', function (socket) {
         givenUsername.trim().length === 0) {
       username = 'Anonymous'
     } else {
-      username = givenUsername.slice(0, 20)
+      username = purify(givenUsername)
     }
     debug = Boolean(debug)
 
