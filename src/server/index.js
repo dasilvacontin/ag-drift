@@ -290,7 +290,10 @@ const track4 = {
 }
 
 const tracks = [track1, track2, track3, track4]
-const trackChoice = (new Date().getDay()) % tracks.length
+const FORCED_TRACK_CHOICE = process.env.FORCED_TRACK_CHOICE
+const trackChoice = FORCED_TRACK_CHOICE
+  ? Number(FORCED_TRACK_CHOICE)
+  : (new Date().getDay()) % tracks.length
 const track = tracks[trackChoice]
 
 const game = new Game(track, true)
