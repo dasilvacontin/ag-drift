@@ -31,7 +31,7 @@
     "babel-runtime": "^6.6.1",
     "browserify": "^13.0.1",
     "chokidar-cli": "^1.2.0",
-    "coveralls": "^2.11.9",
+    "coveralls": "^3.1.1",
     "dot-only-hunter": "^1.0.2",
     "eslint": "^2.13.1",
     "eslint-config-standard": "^5.1.0",
@@ -42,7 +42,7 @@
     "flow-bin": "^0.28.0",
     "istanbul": "^1.0.0-alpha.2",
     "jsmin": "^1.0.1",
-    "mocha": "^2.4.5",
+    "mocha": "^10.2.0",
     "nodemon": "^1.9.2",
     "unexpected": "^10.13.0"
   },
