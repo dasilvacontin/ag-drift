@@ -10,8 +10,6 @@ const utils = require('../common/utils.js')
 const Mixpanel = require('mixpanel')
 const dotenv = require('dotenv')
 dotenv.config()
-const NotionClient = require('@notionhq/client').Client
-const notion = new NotionClient({ auth: process.env.NOTION_API_KEY })
 Mixpanel.singleton = Mixpanel.init('e8281c4dfc67e5a7954bcb73f5633584', {debug: true})
 Mixpanel.singleton.track('Server woke up')
 
@@ -513,85 +511,57 @@ io.on('connection', function (socket) {
   }, 500)
 })
 
-const LAP_RESULTS_DATABASE_ID = 'd8e17e9c905c4d19acfffbb33d6c7258'
-
 const emojiForPosition = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
 
-function renderUsernameAndBestLap (record) {
-  if (record == null) {
-    return '–'
-  } else {
-    return `${record.username}, ${utils.timeToString(record.bestLap)}`
-  }
+const HARDCODED_BEST_LAPS = {
+  'Bowser Castle v0.1': [
+    { username: 'dasilvacontin', bestLap: 21400 },
+    { username: 'jimbo_bingus', bestLap: 22166 },
+    { username: 'CxruptExo', bestLap: 22266 },
+    { username: 'silliest goober', bestLap: 24433 }
+  ],
+  'Chicane': [
+    { username: '<b>Among</b>', bestLap: 4033 },
+    { username: 'C4spanier', bestLap: 4049 },
+    { username: 'TATE', bestLap: 4049 },
+    { username: 'silenced', bestLap: 4099 },
+    { username: 'GMANDAWGS', bestLap: 4149 }
+  ],
+  'Hairpin': [
+    { username: 'Dincan', bestLap: 9383 },
+    { username: 'C4spanier', bestLap: 9466 },
+    { username: 'Bingus', bestLap: 9533 },
+    { username: 'Shrek卐', bestLap: 9550 }
+  ],
+  'Miracle Park': [
+    { username: 'Just in', bestLap: 8266 },
+    { username: 'C4spanier', bestLap: 9283 },
+    { username: 'dasilvacontin', bestLap: 9400 },
+    { username: 'Dincan', bestLap: 9983 },
+    { username: 'silenced', bestLap: 10033 }
+  ]
 }
 
 let lastBestLapsMessage = ''
 let lastCrownOwner
-async function calculateBestTimes () {
-  let crono = Date.now()
-  let lapResults
-  let startCursor
-  const bestLaps = {
-    'Chicane': {},
-    'Hairpin': {},
-    'Miracle Park': {},
-    'Bowser Castle v0.1': {}
-  }
 
-  while (!lapResults || lapResults.has_more) {
-    lapResults = await notion.databases.query({
-      database_id: LAP_RESULTS_DATABASE_ID,
-      sorts: [
-        {
-          property: 'Lap time',
-          direction: 'ascending'
-        }
-      ],
-      filter: {
-        property: 'Invalid',
-        checkbox: {
-          equals: false
-        }
-      },
-      start_cursor: startCursor
-    })
-    lapResults.results.forEach(lap => {
-      const username = lap.properties.Username.rich_text[0].plain_text
-      const trackName = lap.properties['Track name'].rich_text[0].plain_text
-      const lapTime = lap.properties['Lap time'].number
-      if (!bestLaps[trackName]) return
-      const bestLapTimeSoFar = bestLaps[trackName][username] || Infinity
-      if (lapTime < bestLapTimeSoFar) bestLaps[trackName][username] = lapTime
-    })
-    startCursor = lapResults.next_cursor
-  }
-
-  for (let trackName in bestLaps) {
-    const bestLapsForRacers = bestLaps[trackName]
-    const bestLapsForTrack = []
-    for (let username in bestLapsForRacers) {
-      bestLapsForTrack.push({ username: username, bestLap: bestLapsForRacers[username] })
-    }
-    bestLapsForTrack.sort((r1, r2) => r1.bestLap - r2.bestLap)
-    bestLaps[trackName] = bestLapsForTrack
-  }
-
+function initBestTimes () {
   let bestLapsMessage = ''
-  for (let trackName in bestLaps) {
-    const bestLapsForTrack = bestLaps[trackName]
+  for (let trackName in HARDCODED_BEST_LAPS) {
+    const bestLapsForTrack = HARDCODED_BEST_LAPS[trackName]
     bestLapsMessage += `== Best lap in ${trackName} ==
-    🥇 ${renderUsernameAndBestLap(bestLapsForTrack[0])}
-    🥈 ${renderUsernameAndBestLap(bestLapsForTrack[1])}
-    🥉 ${renderUsernameAndBestLap(bestLapsForTrack[2])}
-    4️⃣ ${renderUsernameAndBestLap(bestLapsForTrack[3])}
-    5️⃣ ${renderUsernameAndBestLap(bestLapsForTrack[4])}
+    🥇 ${bestLapsForTrack[0] ? bestLapsForTrack[0].username + ', ' + utils.timeToString(bestLapsForTrack[0].bestLap) : '–'}
+    🥈 ${bestLapsForTrack[1] ? bestLapsForTrack[1].username + ', ' + utils.timeToString(bestLapsForTrack[1].bestLap) : '–'}
+    🥉 ${bestLapsForTrack[2] ? bestLapsForTrack[2].username + ', ' + utils.timeToString(bestLapsForTrack[2].bestLap) : '–'}
+    4️⃣ ${bestLapsForTrack[3] ? bestLapsForTrack[3].username + ', ' + utils.timeToString(bestLapsForTrack[3].bestLap) : '–'}
+    5️⃣ ${bestLapsForTrack[4] ? bestLapsForTrack[4].username + ', ' + utils.timeToString(bestLapsForTrack[4].bestLap) : '–'}
 
     `
   }
   lastBestLapsMessage = bestLapsMessage
 
+  const bestLapsForCurrentTrack = HARDCODED_BEST_LAPS[track.name] || []
   let bestLapsForCurrentTrackMessage = `== Best lap in ${track.name} ==\n`
-  const bestLapsForCurrentTrack = bestLaps[track.name]
   for (let position = 0; position < 9; position++) {
     const record = bestLapsForCurrentTrack[position]
     bestLapsForCurrentTrackMessage += `${emojiForPosition[position]} ${record ? (record.username + ', ' + utils.timeToString(record.bestLap)) : '-'}\n`
@@ -600,11 +570,8 @@ async function calculateBestTimes () {
 
   lastCrownOwner = bestLapsForCurrentTrack.length > 0 ? bestLapsForCurrentTrack[0].username : ''
   io.emit('the-crown', lastCrownOwner)
-
-  setTimeout(calculateBestTimes, 30 * 1000)
-  console.log(`calculateBestTimes took ${Date.now() - crono}`)
 }
-calculateBestTimes()
+initBestTimes()
 
 const PORT = process.env.PORT || 3000
 http.listen(PORT, function () {
