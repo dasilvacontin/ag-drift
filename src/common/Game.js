@@ -2,6 +2,7 @@
 const p2 = require('p2')
 const Socket = require('socket.io-client/lib/socket.js')
 const Turn = require('./Turn.js')
+const PlayerInput = require('./PlayerInput.js')
 const C = require('./constants.js')
 
 const playerColors = {
@@ -258,6 +259,31 @@ class Game {
   }
 
   /**
+   * Resolve the input state a ship inherits at the start of a turn.
+   * Matches end-of-prior-turn state used by Turn.evolve().
+   *
+   * @param {number} turnIndex - Turn to resolve inherited input for
+   * @param {number} shipId - Ship slot
+   * @returns {PlayerInput} Inherited input, or defaults if the ship does not exist yet
+   */
+  getInheritedInputForShip (turnIndex: number, shipId: number) : PlayerInput {
+    const turn = this.turns[turnIndex]
+    const ship = turn && turn.ships[shipId]
+    if (ship && ship.input) return ship.input
+
+    const priorTurn = turnIndex > 0 ? this.turns[turnIndex - 1] : null
+    if (priorTurn) {
+      const priorShip = priorTurn.ships[shipId]
+      if (priorShip && priorShip.input) {
+        const priorEvents = priorTurn.events[shipId] || []
+        return PlayerInput.computeEffectiveInput(priorShip.input, priorEvents)
+      }
+    }
+
+    return new PlayerInput()
+  }
+
+  /**
    * Store player input events on a turn without resimulating or broadcasting.
    * Used by batch handlers to apply multiple updates before a single resimulate.
    *
@@ -281,7 +307,8 @@ class Game {
       throw new C.InvalidTurnError(`Player sent event for turn ${turnIndex}, and only accepting events for turn ${this.lava} minimum.`)
     }
 
-    const changed = turn.addEvents(shipId, events)
+    const inheritedInput = this.getInheritedInputForShip(turnIndex, shipId)
+    const changed = turn.addEvents(shipId, events, inheritedInput)
     return changed
   }
 

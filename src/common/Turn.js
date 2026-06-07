@@ -89,33 +89,25 @@ class Turn {
     return freeSlot
   }
 
-  addEvents (shipId: number, evs: Array<GameEvent>) : boolean {
+  /**
+   * Store player events on this turn, skipping any that would not change effective input.
+   *
+   * @param {number} shipId - Ship slot receiving the events
+   * @param {Array<GameEvent>} evs - Incoming events to consider storing
+   * @param {PlayerInput} inheritedInput - Input inherited from the prior turn (start-of-turn state)
+   * @returns {boolean} changed - Whether any events were stored
+   */
+  addEvents (shipId: number, evs: Array<GameEvent>, inheritedInput: PlayerInput) : boolean {
     const existingEvents = this.events[shipId] || []
     this.events[shipId] = existingEvents
 
-    // check if new events are meaningful, and save them if so.
-    // let the caller know.
     let changed = false
 
     evs.forEach((ev) => {
-      let foundRelated = false
+      const before = PlayerInput.computeEffectiveInput(inheritedInput, existingEvents)
+      const after = PlayerInput.computeEffectiveInput(inheritedInput, existingEvents.concat(ev))
 
-      for (let i = existingEvents.length - 1; i >= 0; --i) {
-        const exEv = existingEvents[i]
-
-        if (exEv.type === ev.type) {
-          foundRelated = true
-
-          if (exEv.val !== ev.val) {
-            changed = true
-            existingEvents.push(ev)
-          }
-
-          break
-        }
-      }
-
-      if (!foundRelated) {
+      if (!PlayerInput.areEqual(before, after)) {
         changed = true
         existingEvents.push(ev)
       }

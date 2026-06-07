@@ -45,6 +45,38 @@ class PlayerInput {
       case C.PLAYER_EVENT.LEAN_R: this.leanR = ev.val; break
     }
   }
+
+  /**
+   * Reconstruct the effective input for a turn, matching Turn.evolve().
+   * Inherits held inputs, resets turnL/turnR, then applies events in order.
+   *
+   * @param {PlayerInput} inheritedInput - Input carried over from the prior turn
+   * @param {Array<GameEvent>} events - Events already stored on this turn for the ship
+   * @returns {PlayerInput} Effective input state after applying events
+   */
+  static computeEffectiveInput (inheritedInput: PlayerInput, events: Array<GameEvent>) : PlayerInput {
+    const input = new PlayerInput(inheritedInput)
+    input.turnL = false
+    input.turnR = false
+    events.forEach((ev) => input.applyPlayerEvent(ev))
+    return input
+  }
+
+  /**
+   * Compare two effective input states for equality across all input fields.
+   *
+   * @param {PlayerInput} a - First input state
+   * @param {PlayerInput} b - Second input state
+   * @returns {boolean} Whether all input fields match
+   */
+  static areEqual (a: PlayerInput, b: PlayerInput) : boolean {
+    return a.gas === b.gas &&
+           a.boost === b.boost &&
+           a.leanL === b.leanL &&
+           a.leanR === b.leanR &&
+           a.turnL === b.turnL &&
+           a.turnR === b.turnR
+  }
 }
 
 module.exports = PlayerInput
