@@ -217,8 +217,8 @@ function x2 (matrix) {
 }
 
 const track4 = {
-  id: 'Bowser Castle v0.1',
-  name: 'Bowser Castle v0.1',
+  id: 'Bowser Castle',
+  name: 'Bowser Castle',
   background: 'images/Bowser_Castle.png',
   foreground: '',
   bgmusic: 'sounds/BowserCastle.wav',
@@ -514,31 +514,32 @@ io.on('connection', function (socket) {
 const emojiForPosition = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
 
 const HARDCODED_BEST_LAPS = {
-  'Bowser Castle v0.1': [
-    { username: 'dasilvacontin', bestLap: 21400 },
-    { username: 'jimbo_bingus', bestLap: 22166 },
-    { username: 'CxruptExo', bestLap: 22266 },
-    { username: 'silliest goober', bestLap: 24433 }
+  'Bowser Castle': [
+    { username: 'dasilvacontin', bestLap: 21.4 },
+    { username: 'jimbo_bingus', bestLap: 22.166 },
+    { username: 'CxruptExo', bestLap: 22.266 },
+    { username: 'silliest goober', bestLap: 24.433 }
   ],
   'Chicane': [
-    { username: '<b>Among</b>', bestLap: 4033 },
-    { username: 'C4spanier', bestLap: 4049 },
-    { username: 'TATE', bestLap: 4049 },
-    { username: 'silenced', bestLap: 4099 },
-    { username: 'GMANDAWGS', bestLap: 4149 }
+    { username: 'papi', bestLap: 3.983 },
+    { username: '<b>Among</b>', bestLap: 4.016 },
+    { username: 'TATE', bestLap: 4.033 },
+    { username: 'C4spanier', bestLap: 4.033 },
+    { username: 'silenced', bestLap: 4.083 }
   ],
   'Hairpin': [
-    { username: 'Dincan', bestLap: 9383 },
-    { username: 'C4spanier', bestLap: 9466 },
-    { username: 'Bingus', bestLap: 9533 },
-    { username: 'Shrek卐', bestLap: 9550 }
+    { username: 'Dincan', bestLap: 9.383 },
+    { username: 'C4spanier', bestLap: 9.466 },
+    { username: 'Bingus', bestLap: 9.533 },
+    { username: 'Shrek卐', bestLap: 9.55 },
+    { username: 'clayton', bestLap: 9.583 }
   ],
   'Miracle Park': [
-    { username: 'Just in', bestLap: 8266 },
-    { username: 'C4spanier', bestLap: 9283 },
-    { username: 'dasilvacontin', bestLap: 9400 },
-    { username: 'Dincan', bestLap: 9983 },
-    { username: 'silenced', bestLap: 10033 }
+    { username: 'Just in', bestLap: 8.266 },
+    { username: 'C4spanier', bestLap: 9.283 },
+    { username: 'dasilvacontin', bestLap: 9.4 },
+    { username: 'Dincan', bestLap: 9.983 },
+    { username: 'silenced', bestLap: 10.033 }
   ]
 }
 
