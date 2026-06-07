@@ -167,6 +167,8 @@ The evolved turn gets **empty** `events` and `serverEvents` arrays — events ar
 
 ```js
 resimulateFrom (turnIndex) {
+  if (this.turnIndex <= turnIndex) return  // nothing to replay yet
+
   for (let i = turnIndex; i < this.turnIndex; ++i) {
     const currentTurn = this.turns[i]
     let nextTurn = this.turns[i + 1]
@@ -181,6 +183,8 @@ resimulateFrom (turnIndex) {
   }
 }
 ```
+
+`resimulateFrom` only replays when `turnIndex < this.turnIndex`. If the event targets the current or a future turn, it is stored and applied when that turn is eventually simulated.
 
 The p2 physics world is fully reset between each replay step. Wall colliders are regenerated from the track grid. This ensures that late-arriving inputs correctly affect all subsequent turns.
 
@@ -218,8 +222,10 @@ On every animation frame, the client:
 
 1. Reads keyboard/gamepad state into a `PlayerInput` object
 2. Diffs against the previous frame's input to produce `PlayerEvent[]`
-3. **Applies events locally immediately** via `game.onPlayerEvents()` (client-side prediction)
+3. **Stores events on the current turn** via `game.onPlayerEvents()`
 4. **Sends events to the server** via `socket.emit('player:events', events, game.turnIndex)`
+
+The client simulates the game locally every frame regardless of server updates — this is client-side prediction. Each frame ends with `tick()` (a full logic step) or `fakeTick()` (a partial step between logic ticks that keeps applying held inputs).
 
 ```js
 if (events.length > 0) {
@@ -244,7 +250,7 @@ socket.on('player:events', (events, turnIndex) => {
 `Game.onPlayerEvents()`:
 
 1. Attaches events to the turn at `turnIndex` (creating the turn if it doesn't exist yet and is in the future)
-2. If the events represent a meaningful change, calls `resimulateFrom(turnIndex)` to replay physics from that point
+2. If the events represent a meaningful change, calls `resimulateFrom(turnIndex)` — this only replays if `turnIndex` is in the *past* (i.e. `turnIndex < this.turnIndex`). Events for the current turn are applied on the next `tick()`
 3. Broadcasts `player:events` to **all** connected clients (including the sender)
 
 ```js
@@ -322,28 +328,24 @@ After bootstrap, clients stay in sync via three Socket.io event types:
 
 | Event | Direction | Payload | Effect |
 |-------|-----------|---------|--------|
-| `player:events` | S→C | `(shipId, events, turnIndex)` | Attach inputs and resimulate |
-| `server:event` | S→C | `(event, turnIndex)` | Spawn/destroy players and resimulate |
+| `player:events` | S→C | `(shipId, events, turnIndex)` | Attach inputs; resimulate if turn is in the past |
+| `server:event` | S→C | `(event, turnIndex)` | Spawn/destroy; resimulate if turn is in the past |
 | `game:bootstrap` | S→C | `{ initialTurn, map, turnsSlice, shipId, lastTick }` | Full state recovery |
 
-When a client receives `player:events` or `server:event`, it calls the same `Game.onPlayerEvents()` / `Game.onServerEvent()` methods as the server. This triggers `resimulateFrom()` locally, keeping the client's simulation aligned with the server's.
-
-The client intentionally re-applies its own events from the server broadcast (the `if (shipId === myShipId) return` guard is commented out). This ensures server-authoritative reconciliation even when the client's local prediction diverged.
+Events from the server always arrive late — by the time a broadcast reaches a client, that `turnIndex` is always in the past, so `resimulateFrom()` replays from that point forward. The client intentionally re-applies its own events too (the `if (shipId === myShipId) return` guard is commented out), using the server echo as authoritative reconciliation.
 
 ### Client game loop: tick vs. fakeTick
 
-The client runs a `requestAnimationFrame` loop (~60 fps) that differs from the server's tick scheduler:
+The client runs a `requestAnimationFrame` loop (~60 fps). Local simulation happens every frame, independent of server messages:
 
 ```js
 const currentTurn = game.canTick()
-  ? game.tick()       // full discrete turn advance (same as server)
-  : game.fakeTick()   // partial physics step for smooth rendering
+  ? game.tick()       // full logic step (same as server)
+  : game.fakeTick()   // partial step between logic ticks
 ```
 
-- **`tick()`**: Advances `turnIndex` and runs a full simulation step — identical to the server
-- **`fakeTick()`**: Runs a partial physics step with `dt < TIME_STEP` for visual interpolation between ticks, without advancing `turnIndex`
-
-This gives smooth rendering between discrete simulation steps.
+- **`tick()`**: Advances `turnIndex` and runs a full simulation step via `resimulateFrom()`
+- **`fakeTick()`**: Runs a partial `evolve()` with `dt < TIME_STEP` between logic ticks. It does not advance `turnIndex`, but it still applies held inputs (e.g. gas still pressed) — the client's best estimate of where the game is right now. This keeps both the simulation and the display current while waiting for the next `tick()`
 
 ### Clock sync
 
@@ -408,7 +410,7 @@ If a client references a turn older than `lava`, or turn data is missing during 
 
 1. **Lockstep, not state sync** — Only inputs travel over the wire. Positions, velocities, and lap times are derived locally by replaying the same simulation.
 
-2. **Server authoritative with client prediction** — Clients apply their own inputs immediately for responsiveness. The server's broadcast triggers resimulation for consistency across all peers.
+2. **Server authoritative with client prediction** — Clients store inputs and simulate locally every frame (`tick()` and `fakeTick()`), continuing to apply held inputs between server updates. Server broadcasts arrive late and trigger `resimulateFrom()` to bring the client back in sync.
 
 3. **Turn-indexed events** — Every input is tagged with `turnIndex`, enabling precise replay regardless of network latency.
 
@@ -423,13 +425,12 @@ If a client references a turn older than `lava`, or turn data is missing during 
 ## End-to-end example: pressing gas
 
 1. Player presses Up Arrow. Client detects `gas` changed from `false` to `true`.
-2. Client creates `new PlayerEvent('gas', true)` and calls `game.onPlayerEvents(myShipId, [event], 42)`.
-3. Client immediately resimulates from turn 42 — ship starts accelerating locally.
-4. Client sends `socket.emit('player:events', [event], 42)` to server.
-5. Server receives event, calls `game.onPlayerEvents(shipId, [event], 42)`.
-6. Server attaches event to turn 42, resimulates from turn 42 forward.
-7. Server broadcasts `player:events` with `(shipId, [event], 42)` to all clients.
-8. All clients (including sender) receive the broadcast and resimulate from turn 42.
-9. On the next tick, both server and clients advance `turnIndex` to 43 and evolve physics with the gas input applied.
+2. Client stores the event on turn 42 via `onPlayerEvents()` and sends `socket.emit('player:events', [event], 42)`. The game keeps simulating locally — the ship starts accelerating on the next `tick()` or `fakeTick()`, whichever runs first.
+3. Server receives the event. Depending on where the server's clock is:
+   - **Turn 42 is in the past** (server already at 43+): store event on turn 42, `resimulateFrom(42)` replays forward.
+   - **Turn 42 is current**: store event on turn 42; applied on the next server `tick()`.
+   - **Turn 42 is in the future** (server still at 41): store event in the future turn slot; applied when the server reaches turn 42.
+4. Server broadcasts `player:events` with `(shipId, [event], 42)` to all clients.
+5. Clients receive the broadcast — always late relative to when they sent it. Turn 42 is now in the past, so `resimulateFrom(42)` replays forward, reconciling all clients (including the sender) with the authoritative state.
 
-If the client's local prediction at step 3 matched the server's authoritative result at step 6, no visible correction occurs. If they diverged (e.g., due to a late-arriving event from another player), the resimulation at step 8 corrects the client's state.
+If the client's local simulation matched the server's evolution, step 5 produces no visible correction. If they diverged (e.g. another player's late event altered turn 42), step 5 corrects it.
