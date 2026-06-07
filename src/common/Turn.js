@@ -8,7 +8,6 @@ const C = require('./constants.js')
 const { log, timeToString } = require('./utils.js')
 // const Mixpanel = require('mixpanel')
 
-
 function resetBody (body) {
   delete body._listeners
   body.id = p2.Body._idCounter++

@@ -86,6 +86,8 @@ class Game {
 
   lava: number
   lastTick: number
+  pendingPlayerEventBroadcasts: Array<{ shipId: number, events: Array<GameEvent>, turnIndex: number }>
+  pendingServerEventBroadcasts: Array<{ event: GameEvent, turnIndex: number }>
 
   constructor (map : Track, isServer: boolean = false) {
     this.map = map
@@ -97,6 +99,8 @@ class Game {
     this.sockets = []
     this.debugSockets = []
     this.socketToShip = {}
+    this.pendingPlayerEventBroadcasts = []
+    this.pendingServerEventBroadcasts = []
 
     this.generateCellBodies()
     this.lava = 0
@@ -253,11 +257,21 @@ class Game {
     this.onServerEvent(event, this.turnIndex)
   }
 
-  onPlayerEvents (
+  /**
+   * Store player input events on a turn without resimulating or broadcasting.
+   * Used by batch handlers to apply multiple updates before a single resimulate.
+   *
+   * @param {number} shipId - Ship slot receiving the events
+   * @param {Array<GameEvent>} events - Input events to attach
+   * @param {number} turnIndex - Turn the events belong to
+   * @returns {boolean} changed - Whether any meaningful events were stored (deduped no-ops return false)
+   * @throws {C.InvalidTurnError} If turnIndex is below lava and no turn data exists
+   */
+  applyPlayerEvents (
     shipId: number,
     events: Array<GameEvent>,
     turnIndex: number
-  ) {
+  ) : boolean {
     let turn = this.turns[turnIndex]
     if (turn == null && turnIndex > this.turnIndex) {
       turn = new Turn([], [], [])
@@ -268,19 +282,18 @@ class Game {
     }
 
     const changed = turn.addEvents(shipId, events)
-    if (changed) {
-      this.resimulateFrom(turnIndex)
-
-      if (this.isServer) {
-        this.sockets.forEach((socket) => {
-          if (socket == null) return
-          socket.emit('player:events', shipId, events, turnIndex)
-        })
-      }
-    }
+    return changed
   }
 
-  onServerEvent (event: GameEvent, turnIndex: number) {
+  /**
+   * Store a server event on a turn without resimulating or broadcasting.
+   * Used by batch handlers to apply multiple updates before a single resimulate.
+   *
+   * @param {GameEvent} event - Server event to attach (e.g. spawn/destroy player)
+   * @param {number} turnIndex - Turn the event belongs to
+   * @returns {boolean} changed - Whether the event was stored; currently always true (see Turn.addServerEvent)
+   */
+  applyServerEvent (event: GameEvent, turnIndex: number) : boolean {
     let turn = this.turns[turnIndex]
     if (turn == null) {
       turn = new Turn([], [], [])
@@ -288,14 +301,81 @@ class Game {
     }
 
     const changed = turn.addServerEvent(event)
+    return changed
+  }
+
+  coalescePlayerEventBroadcasts (queue) {
+    const byKey = new Map()
+    const keyOrder = []
+
+    for (const entry of queue) {
+      const key = `${entry.turnIndex}:${entry.shipId}`
+      if (!byKey.has(key)) {
+        keyOrder.push(key)
+        byKey.set(key, { shipId: entry.shipId, turnIndex: entry.turnIndex, events: entry.events.slice() })
+      } else {
+        byKey.get(key).events.push(...entry.events)
+      }
+    }
+
+    return keyOrder.map((key) => byKey.get(key))
+  }
+
+  applyEventsBatch ({ player = [], server = [] }) {
+    let minTurnIndex = Infinity
+
+    for (const { event, turnIndex } of server) {
+      if (this.applyServerEvent(event, turnIndex)) {
+        minTurnIndex = Math.min(minTurnIndex, turnIndex)
+      }
+    }
+    for (const { shipId, events, turnIndex } of player) {
+      if (this.applyPlayerEvents(shipId, events, turnIndex)) {
+        minTurnIndex = Math.min(minTurnIndex, turnIndex)
+      }
+    }
+
+    return minTurnIndex
+  }
+
+  flushEventBroadcasts () {
+    if (!this.isServer) return
+
+    const player = this.coalescePlayerEventBroadcasts(this.pendingPlayerEventBroadcasts)
+    const server = this.pendingServerEventBroadcasts
+    this.pendingPlayerEventBroadcasts = []
+    this.pendingServerEventBroadcasts = []
+
+    if (player.length === 0 && server.length === 0) return
+
+    const batch = { player, server }
+    this.sockets.forEach((socket) => {
+      if (socket != null) socket.emit('game:events:batch', batch)
+    })
+  }
+
+  onPlayerEvents (
+    shipId: number,
+    events: Array<GameEvent>,
+    turnIndex: number
+  ) {
+    const changed = this.applyPlayerEvents(shipId, events, turnIndex)
     if (changed) {
       this.resimulateFrom(turnIndex)
 
       if (this.isServer) {
-        this.sockets.forEach((socket) => {
-          if (socket == null) return
-          socket.emit('server:event', event, turnIndex)
-        })
+        this.pendingPlayerEventBroadcasts.push({ shipId, events, turnIndex })
+      }
+    }
+  }
+
+  onServerEvent (event: GameEvent, turnIndex: number) {
+    const changed = this.applyServerEvent(event, turnIndex)
+    if (changed) {
+      this.resimulateFrom(turnIndex)
+
+      if (this.isServer) {
+        this.pendingServerEventBroadcasts.push({ event, turnIndex })
       }
     }
   }
@@ -318,6 +398,7 @@ class Game {
       }
     }
 
+    this.flushEventBroadcasts()
     return this.turn
   }
 

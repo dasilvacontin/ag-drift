@@ -671,17 +671,13 @@ socket.on('game:bootstrap', (data) => {
   }
 })
 
-socket.on('server:event', (event, turnIndex) => {
-  game.onServerEvent(event, turnIndex)
-})
-
-socket.on('player:events', (shipId, events, turnIndex) => {
-  // applying own inputs since game might have been bootstrapped after
-  // client issued such commands
-  // if (shipId === myShipId) return
+socket.on('game:events:batch', (batch) => {
   if (game == null) return
   try {
-    game.onPlayerEvents(shipId, events, turnIndex)
+    const minTurnIndex = game.applyEventsBatch(batch)
+    if (minTurnIndex < game.turnIndex) {
+      game.resimulateFrom(minTurnIndex)
+    }
   } catch (e) {
     if (e instanceof C.InvalidTurnError) {
       console.log('got lost, requesting bootstrap')
