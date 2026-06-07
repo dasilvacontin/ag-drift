@@ -19,6 +19,23 @@ const { timeToString, repeat } = require('../common/utils.js')
 
 const DEBUG_MODE = Boolean(localStorage.getItem('DEBUG'))
 
+function shipFromWire (rawShip) {
+  if (!rawShip) return null
+  return new Ship({
+    position: [rawShip.position[0], rawShip.position[1]],
+    velocity: [rawShip.velocity[0], rawShip.velocity[1]],
+    angle: rawShip.angle,
+    username: rawShip.username,
+    color: rawShip.color,
+    input: new PlayerInput(rawShip.input),
+    checkpoint: rawShip.checkpoint,
+    lap: rawShip.lap,
+    currentLaptime: rawShip.currentLaptime,
+    laptimes: rawShip.laptimes,
+    isDrafting: rawShip.isDrafting
+  })
+}
+
 mixpanel.init('e8281c4dfc67e5a7954bcb73f5633584', {
   debug: true,
   loaded: function () {
@@ -332,7 +349,7 @@ let hadFinishedRace = false
 function gameLoop () {
   requestAnimationFrame(gameLoop)
 
-  if (game == null) return
+  if (game == null || gameController == null) return
   meter.tickStart()
 
   // get inputs for this turn
@@ -621,12 +638,15 @@ socket.on('game:bootstrap', (data) => {
   let lastTurn
   for (let i = 0; i < turnsSlice.length; ++i) {
     let { ships, events, serverEvents, state, counter } = turnsSlice[i]
-    ships = ships.map((rawShip) => rawShip && new Ship(rawShip))
+    ships = ships.map(shipFromWire)
     const turn = new Turn(ships, events, serverEvents, state, counter)
     game.turns[initialTurn + i] = turn
     lastTurn = turn
   }
-  if (lastTurn == null) return
+  if (lastTurn == null) {
+    game = null
+    return
+  }
   game.turn = lastTurn
   game.turnIndex = game.turns.length - 1
   game.lastTick = lastTick
@@ -646,6 +666,9 @@ socket.on('game:bootstrap', (data) => {
     debugGameController = new GameController(debugGame, true)
     debugGameController.stage.alpha = 0.5
     gameController.stage.addChild(debugGameController.stage)
+  } else {
+    debugGame = null
+    debugGameController = null
   }
 
   console.log('got bootstrapped by server')
@@ -687,8 +710,11 @@ socket.on('game:events:batch', (batch) => {
 })
 
 socket.on('game:debug', (turn) => {
-  if (!DEBUG_MODE) return
-  debugGameController.update(turn)
+  if (!DEBUG_MODE || !debugGameController || !turn || !turn.ships) return
+  debugGameController.update({
+    ...turn,
+    ships: turn.ships.map(shipFromWire)
+  })
 })
 
 gameLoop()
