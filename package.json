@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "A multiplayer anti-gravity racing game.",
   "main": "server/index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "lint": "eslint src test",
     "typecheck": "node -e 'process.env.SKIP_FLOW || process.exit(1)' || flow",
@@ -13,7 +16,7 @@
     "build": "babel src --out-dir . && browserify client/index.js -o public/bundle.js && (say 'go es!'; echo 'built!')",
     "prepublish": "npm run test && npm run build",
     "prestart": "npm run build",
-    "start": "IS_SERVER=true nodemon server/index.js",
+    "start": "IS_SERVER=true node server/index.js",
     "watch": "chokidar 'src/**/*.js' 'test/**/*.js' -c 'clear; npm run test --silent; npm run typecheck --silent; npm run build --silent'"
   },
   "author": "David da Silva <dasilvacontin@gmail.com>",
