@@ -92,20 +92,20 @@ function switchBgMusic () {
 
     case C.GAME_STATE.IN_PROGRESS:
     case C.GAME_STATE.FINISH_COUNTDOWN:
-      if (lap < C.MAX_LAPS && musicBeingPlayed !== 'BG_MUSIC') {
+      if (lap < C.MAX_LAPS && musicBeingPlayed !== 'BG_MUSIC' && musicBeingPlayed !== 'VICTORY_MUSIC') {
         bgMusicFinalLap && bgMusicFinalLap.stop()
         bgMusic.play()
         musicBeingPlayed = 'BG_MUSIC'
-      } else if (lap === C.MAX_LAPS && musicBeingPlayed !== 'FINAL_LAP') {
+      } else if (lap === C.MAX_LAPS && musicBeingPlayed !== 'FINAL_LAP' && musicBeingPlayed !== 'VICTORY_MUSIC') {
         if (bgMusicFinalLap) {
           bgMusic.stop()
           bgMusicFinalLap.play()
         }
         musicBeingPlayed = 'FINAL_LAP'
-      } else if ((lap === C.MAX_LAPS + 1) && musicBeingPlayed !== 'VICTORY_MUSIC') {
+      } else if (lap >= C.MAX_LAPS + 1 && musicBeingPlayed !== 'VICTORY_MUSIC') {
         bgMusic.stop()
         bgMusicFinalLap && bgMusicFinalLap.stop()
-        finishedRaceMusic.play()
+        if (!finishedRaceMusic.playing()) finishedRaceMusic.play()
         musicBeingPlayed = 'VICTORY_MUSIC'
         twttr.conversion.trackPid(TWITTER_EVENT_RACE_COMPLETE, { tw_sale_amount: 0, tw_order_quantity: 0 })
       }
@@ -115,8 +115,8 @@ function switchBgMusic () {
       if (musicBeingPlayed !== 'RESULTS_SCREEN_MUSIC') {
         bgMusic.stop()
         bgMusicFinalLap && bgMusicFinalLap.stop()
-        if (lap === C.MAX_LAPS + 1 && musicBeingPlayed !== 'VICTORY_MUSIC') {
-          finishedRaceMusic.play()
+        if (lap >= C.MAX_LAPS + 1 && musicBeingPlayed !== 'VICTORY_MUSIC') {
+          if (!finishedRaceMusic.playing()) finishedRaceMusic.play()
           twttr.conversion.trackPid(TWITTER_EVENT_RACE_COMPLETE, { tw_sale_amount: 0, tw_order_quantity: 0 })
         }
         musicBeingPlayed = 'RESULTS_SCREEN_MUSIC'
