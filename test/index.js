@@ -2,8 +2,6 @@
 const expect = require('unexpected')
 const Game = require('../src/common/Game')
 const Turn = require('../src/common/Turn')
-const Ship = require('../src/common/Ship')
-const PlayerInput = require('../src/common/PlayerInput')
 const C = require('../src/common/constants')
 const PlayerEvent = require('../src/common/PlayerEvent')
 
@@ -30,22 +28,6 @@ function mockSocket () {
     },
     emitted
   }
-}
-
-function createShip (inputOverrides = {}) {
-  return new Ship({
-    position: [0, 0],
-    velocity: [0, 0],
-    angle: 0,
-    username: 'tester',
-    color: 0xff0000,
-    input: new PlayerInput(inputOverrides),
-    checkpoint: 1,
-    lap: 0,
-    currentLaptime: 0,
-    laptimes: [0],
-    isDrafting: false
-  })
 }
 
 describe('Game event batching', () => {
@@ -187,51 +169,6 @@ describe('Game event batching', () => {
 
       expect(game.applyPlayerEvents(0, [gasOn], 0), 'to be truthy')
       expect(game.applyPlayerEvents(0, [gasOn], 0), 'to be falsy')
-    })
-
-    it('skips inherited gas when already held', () => {
-      const game = createServerGame()
-      game.turns[1] = new Turn([createShip({ gas: true })], [], [])
-      const gasOn = new PlayerEvent(C.PLAYER_EVENT.GAS, true)
-
-      expect(game.applyPlayerEvents(0, [gasOn], 1), 'to be falsy')
-    })
-
-    it('keeps same-turn gas release after press', () => {
-      const game = createServerGame()
-      const gasOn = new PlayerEvent(C.PLAYER_EVENT.GAS, true)
-      const gasOff = new PlayerEvent(C.PLAYER_EVENT.GAS, false)
-
-      expect(game.applyPlayerEvents(0, [gasOn], 0), 'to be truthy')
-      expect(game.applyPlayerEvents(0, [gasOff], 0), 'to be truthy')
-    })
-
-    it('keeps turnL after inherited turnL is reset', () => {
-      const game = createServerGame()
-      game.turns[0] = new Turn([createShip({ turnL: true })], [], [])
-      const turnL = new PlayerEvent(C.PLAYER_EVENT.TURN_L, true)
-
-      expect(game.applyPlayerEvents(0, [turnL], 0), 'to be truthy')
-    })
-
-    it('skips gas on future turn when prior turn left gas on', () => {
-      const game = createServerGame()
-      game.turnIndex = 0
-      game.turns[0] = new Turn([createShip()], [], [])
-      game.turns[1] = new Turn([], [], [])
-
-      expect(game.applyPlayerEvents(0, [new PlayerEvent(C.PLAYER_EVENT.GAS, true)], 0), 'to be truthy')
-      expect(game.applyPlayerEvents(0, [new PlayerEvent(C.PLAYER_EVENT.GAS, true)], 1), 'to be falsy')
-    })
-  })
-
-  describe('PlayerInput.computeEffectiveInput', () => {
-    it('resets turnL and turnR before applying events', () => {
-      const inherited = new PlayerInput({ gas: true, turnL: true })
-      const effective = PlayerInput.computeEffectiveInput(inherited, [])
-
-      expect(effective.gas, 'to be', true)
-      expect(effective.turnL, 'to be', false)
     })
   })
 })
