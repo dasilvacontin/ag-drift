@@ -44,8 +44,8 @@ The server supports three **session modes** (`idle`, `cup`, `timeattack`), set o
 | Mode | Entered by | Between races |
 |------|------------|-----------------|
 | `idle` | Server boot; all humans leave | Auto-reset on the same track (bot loop) |
-| `cup` | First human joins; Host `/restart-cup` | Results screen holds → server `changeTrack()` (turn reset + rebootstrap) |
-| `timeattack` | Host `/timeattack` + track number | Auto-reset on the same track |
+| `cup` | First human joins; Host `/restart` or `/gamemode cup` | Results screen holds → server `changeTrack()` (turn reset + rebootstrap) |
+| `timeattack` | Host `/gamemode timeattack` | Auto-reset on the same track |
 
 Track switches discard turn history and rebootstrap all connected clients. `Game.resetForTrackChange()` sets `turnIndex` and `lava` to 0, places existing ships on the new grid in `START_COUNTDOWN`, and sends a fresh `game:bootstrap` to every player. Session mode is included in the bootstrap payload.
 
@@ -63,11 +63,11 @@ When all humans leave, the cup resets to **idle** (no scoring, no progression).
 
 ### Host commands (chat)
 
-Host-only commands (first human = Host; random transfer on Host disconnect):
+Host-only commands (first human = Host; random transfer on Host disconnect). Announced commands depend on session mode:
 
-- `/restart-cup` — fresh 4-race cup shuffle
-- `/timeattack` — prompts numbered track list; Host replies `1`–`4`
-- `/bots on` / `/bots off` — toggle AI bots and restart the session
+**Cup mode:** `/restart`, `/bots on`, `/bots off`, `/gamemode timeattack`
+
+**Time attack mode:** `/restart`, `/track`, `/gamemode cup` (Host replies `1`–`4` after `/track` to pick a track)
 
 Connect/disconnect system messages: `"Alice connected"` / `"Bob left"`.
 

@@ -170,11 +170,12 @@ class Game {
     this.generateCellBodies()
   }
 
-  resetForTrackChange (map: Track) {
+  resetForTrackChange (map: Track, { includeBots = true }: { includeBots?: boolean } = {}) {
     if (!this.isServer) return
 
     const roster = this.turn.ships.map((ship, shipId) => {
       if (!ship) return null
+      if (!includeBots && ship.isABot()) return null
       return { shipId, username: ship.username, color: ship.color }
     })
 
@@ -183,9 +184,10 @@ class Game {
     this.pendingServerEventBroadcasts = []
 
     const ships = []
+    let gridSlot = 0
     roster.forEach((entry) => {
       if (!entry) return
-      const position = positionForShipId(map, entry.shipId)
+      const position = positionForShipId(map, gridSlot)
       ships[entry.shipId] = new Ship({
         position: [position[0], position[1]],
         velocity: [0, 0],
@@ -199,6 +201,7 @@ class Game {
         laptimes: [0],
         isDrafting: false
       })
+      gridSlot++
     })
 
     this.turnIndex = 0

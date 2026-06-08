@@ -169,17 +169,42 @@ describe('cup', () => {
       expect(['Bob', 'Carol'], 'to contain', next)
     })
 
-    it('formats host and cup start messages with command hints', () => {
+    it('formats host and cup start messages with mode-specific command hints', () => {
       const cup = new CupManager(tracks)
       expect(
         cup.formatCupStartMessage('Alice', 'Chicane', 1),
         'to contain',
-        '/restart-cup'
+        '/gamemode timeattack'
       )
       expect(
-        cup.formatHostTransferMessage('Bob'),
+        cup.formatCupStartMessage('Alice', 'Chicane', 1),
         'to contain',
-        '/timeattack'
+        '/restart'
+      )
+      expect(
+        cup.formatCupStartMessage('Alice', 'Chicane', 1),
+        'not to contain',
+        '/track'
+      )
+      expect(
+        cup.formatHostTransferMessage('Bob', C.SESSION_MODE.CUP),
+        'to contain',
+        '/gamemode timeattack'
+      )
+      expect(
+        cup.formatTimeAttackStartMessage('Chicane', 'Alice'),
+        'to contain',
+        '/gamemode cup'
+      )
+      expect(
+        cup.formatTimeAttackStartMessage('Chicane', 'Alice'),
+        'to contain',
+        '/track'
+      )
+      expect(
+        cup.formatTimeAttackStartMessage('Chicane', 'Alice'),
+        'not to contain',
+        '/bots on'
       )
     })
 

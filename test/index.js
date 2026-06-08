@@ -2,6 +2,8 @@
 const expect = require('unexpected')
 const Game = require('../src/common/Game')
 const Turn = require('../src/common/Turn')
+const Ship = require('../src/common/Ship')
+const PlayerInput = require('../src/common/PlayerInput')
 const C = require('../src/common/constants')
 const PlayerEvent = require('../src/common/PlayerEvent')
 
@@ -159,6 +161,39 @@ describe('Game event batching', () => {
       game.resimulateFrom(0)
       expect(game.turn.ships[0], 'to be truthy')
       expect(game.turn.ships[0].username, 'to be', 'tester')
+    })
+  })
+
+  describe('resetForTrackChange', () => {
+    it('excludes bots from the starting grid when includeBots is false', () => {
+      const game = createServerGame()
+      const makeShip = (username) => new Ship({
+        position: [0, 0],
+        velocity: [0, 0],
+        angle: 0,
+        username,
+        color: 0xff0000,
+        input: new PlayerInput(),
+        checkpoint: 1,
+        lap: 0,
+        currentLaptime: 0,
+        laptimes: [0],
+        isDrafting: false
+      })
+
+      game.turn.ships[0] = makeShip('Alice')
+      game.turn.ships[1] = makeShip('Bob (Bot)')
+      game.turn.ships[3] = makeShip('Carol')
+      game.resetForTrackChange(testTrack, { includeBots: false })
+
+      expect(game.turn.ships[0].username, 'to be', 'Alice')
+      expect(game.turn.ships[1], 'to be', undefined)
+      expect(game.turn.ships[3].username, 'to be', 'Carol')
+      expect(
+        game.turn.ships[3].position[0],
+        'to be',
+        game.turn.ships[0].position[0] + 3
+      )
     })
   })
 

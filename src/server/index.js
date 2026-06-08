@@ -134,10 +134,16 @@ function changeTrack (newTrack) {
   track = newTrack
   trackIndex = tracks.indexOf(newTrack)
   brain = brains[trackIndex]
+  if (!botsEnabled) {
+    destroyAllBots()
+  }
+  game.resetForTrackChange(newTrack, { includeBots: botsEnabled })
+  if (botsEnabled && bots.length === 0) {
+    spawnBotsForTrack(track.nBots)
+  }
   bots.forEach((aiSocket) => {
     aiSocket.version = track.aiType
   })
-  game.resetForTrackChange(newTrack)
   oldInputs.length = 0
   prevState = game.turn.state
   resultsHoldEmitted = false
@@ -180,8 +186,6 @@ function setBotsEnabled (enabled) {
   botsEnabled = enabled
   if (!botsEnabled) {
     destroyAllBots()
-  } else {
-    spawnBotsForTrack(track.nBots)
   }
   return true
 }
@@ -204,6 +208,25 @@ function restartCupSession (hostUsername) {
   game.sessionMode = C.SESSION_MODE.CUP
   changeTrack(tracks[cup.currentTrackIndex()])
   emitCupStartMessage()
+}
+
+function startTimeAttackSession (hostUsername) {
+  pendingTimeAttackTrack = null
+  cup.resetForNextSession()
+  cup.assignHost(hostUsername)
+  setSessionMode(C.SESSION_MODE.TIMEATTACK)
+  changeTrack(track)
+  io.emit('system-msg', cup.formatTimeAttackStartMessage(track.name, hostUsername))
+}
+
+function restartSession (hostUsername) {
+  if (game.sessionMode === C.SESSION_MODE.TIMEATTACK) {
+    changeTrack(track)
+    const host = cup.hostUsername || hostUsername
+    io.emit('system-msg', cup.formatTimeAttackStartMessage(track.name, host))
+  } else {
+    restartCupSession(hostUsername)
+  }
 }
 
 let timerId
@@ -420,8 +443,8 @@ io.on('connection', function (socket) {
     if (humansBefore > 0 && cup.active) {
       const catchUp = cup.formatCatchUpMessage()
       if (catchUp) socket.emit('system-msg', catchUp)
-    } else if (game.sessionMode === C.SESSION_MODE.TIMEATTACK) {
-      socket.emit('system-msg', cup.formatTimeAttackStartMessage(track.name))
+    } else if (game.sessionMode === C.SESSION_MODE.TIMEATTACK && cup.hostUsername) {
+      socket.emit('system-msg', cup.formatTimeAttackStartMessage(track.name, cup.hostUsername))
     }
   })
 
@@ -467,7 +490,7 @@ io.on('connection', function (socket) {
     } else if (wasHost) {
       const newHost = cup.transferHost(humans)
       if (newHost) {
-        io.emit('system-msg', cup.formatHostTransferMessage(newHost))
+        io.emit('system-msg', cup.formatHostTransferMessage(newHost, game.sessionMode))
       }
     }
   })
@@ -482,11 +505,8 @@ io.on('connection', function (socket) {
       const n = parseInt(text.trim(), 10)
       if (n >= 1 && n <= tracks.length) {
         pendingTimeAttackTrack = null
-        cup.resetForNextSession()
-        cup.assignHost(username)
-        setSessionMode(C.SESSION_MODE.TIMEATTACK)
         changeTrack(tracks[n - 1])
-        io.emit('system-msg', cup.formatTimeAttackStartMessage(tracks[n - 1].name))
+        io.emit('system-msg', cup.formatTimeAttackStartMessage(tracks[n - 1].name, username))
         return
       }
       socket.emit('system-msg', 'Invalid track. Reply with a number 1–4.')
@@ -501,40 +521,62 @@ io.on('connection', function (socket) {
 
       const cmd = text.trim().toLowerCase()
 
-      if (cmd === '/restart-cup') {
+      if (cmd === '/restart') {
+        restartSession(username)
+        return
+      }
+
+      if (cmd === '/gamemode cup') {
+        if (game.sessionMode === C.SESSION_MODE.CUP) {
+          socket.emit('system-msg', 'Already in cup mode.')
+          return
+        }
         restartCupSession(username)
         return
       }
 
-      if (cmd === '/timeattack') {
+      if (cmd === '/gamemode timeattack') {
+        if (game.sessionMode === C.SESSION_MODE.TIMEATTACK) {
+          socket.emit('system-msg', 'Already in time attack mode.')
+          return
+        }
+        startTimeAttackSession(username)
+        return
+      }
+
+      if (cmd === '/track') {
+        if (game.sessionMode !== C.SESSION_MODE.TIMEATTACK) {
+          socket.emit('system-msg', 'Track switching is only available in time attack mode.')
+          return
+        }
         pendingTimeAttackTrack = { hostUsername: username }
         io.emit('system-msg', cup.formatTimeAttackTrackPrompt(tracks))
         return
       }
 
       if (cmd === '/bots on') {
+        if (game.sessionMode !== C.SESSION_MODE.CUP) {
+          socket.emit('system-msg', 'Bot commands are only available in cup mode.')
+          return
+        }
         if (!setBotsEnabled(true)) {
           socket.emit('system-msg', 'Bots are already on.')
           return
         }
-        if (game.sessionMode === C.SESSION_MODE.CUP) {
-          restartCupSession(username)
-        } else {
-          changeTrack(track)
-        }
+        restartCupSession(username)
         return
       }
 
       if (cmd === '/bots off') {
+        if (game.sessionMode !== C.SESSION_MODE.CUP) {
+          socket.emit('system-msg', 'Bot commands are only available in cup mode.')
+          return
+        }
         if (!setBotsEnabled(false)) {
           socket.emit('system-msg', 'Bots are already off.')
           return
         }
-        if (game.sessionMode === C.SESSION_MODE.CUP) {
-          restartCupSession(username)
-        } else {
-          changeTrack(track)
-        }
+        restartCupSession(username)
         return
       }
     }

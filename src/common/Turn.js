@@ -56,15 +56,17 @@ function positionForShipId (map: Track, shipId: number) {
 }
 
 function resetShipsOnMap (ships: Array<?Ship>, map: Track) {
-  ships.forEach((ship, i) => {
+  let gridSlot = 0
+  ships.forEach((ship) => {
     if (!ship) return
-    ship.position = positionForShipId(map, i)
+    ship.position = positionForShipId(map, gridSlot)
     ship.velocity = [0, 0]
     ship.angle = -Math.PI / 2
     ship.checkpoint = 1
     ship.lap = 0
     ship.currentLaptime = 0
     ship.laptimes = [0]
+    gridSlot++
   })
 }
 

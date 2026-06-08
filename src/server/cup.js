@@ -3,7 +3,13 @@ const C = require('../common/constants.js')
 
 const CUP_POINTS = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 
-const HOST_COMMANDS = 'Host commands: /restart-cup, /timeattack, /bots on, /bots off'
+const CUP_HOST_COMMANDS = 'Host commands: /restart, /bots on, /bots off, /gamemode timeattack'
+const TIMEATTACK_HOST_COMMANDS = 'Host commands: /restart, /track, /gamemode cup'
+
+function hostCommandsForMode (sessionMode: string) {
+  if (sessionMode === C.SESSION_MODE.TIMEATTACK) return TIMEATTACK_HOST_COMMANDS
+  return CUP_HOST_COMMANDS
+}
 
 function shuffleArray (arr) {
   const a = arr.slice()
@@ -184,11 +190,15 @@ class CupManager {
   }
 
   formatCupStartMessage (hostUsername: string, trackName: string, raceNum: number) {
-    return `🏆 Cup starting! Race ${raceNum}/4: ${trackName}\n${hostUsername} is the Host. ${HOST_COMMANDS}`
+    return `🏆 Cup starting! Race ${raceNum}/4: ${trackName}\n${hostUsername} is the Host. ${CUP_HOST_COMMANDS}`
   }
 
-  formatHostTransferMessage (hostUsername: string) {
-    return `${hostUsername} is the new Host.\n${HOST_COMMANDS}`
+  formatHostTransferMessage (hostUsername: string, sessionMode: string) {
+    return `${hostUsername} is the new Host.\n${hostCommandsForMode(sessionMode)}`
+  }
+
+  formatTimeAttackStartMessage (trackName: string, hostUsername: string) {
+    return `⏱ Time attack: ${trackName}\n${hostUsername} is the Host. ${TIMEATTACK_HOST_COMMANDS}`
   }
 
   formatTimeAttackTrackPrompt (tracks: Array<Object>) {
@@ -197,10 +207,6 @@ class CupManager {
       msg += `${i + 1}. ${t.name}\n`
     })
     return msg.trim()
-  }
-
-  formatTimeAttackStartMessage (trackName: string) {
-    return `⏱ Time attack: ${trackName}`
   }
 
   formatCatchUpMessage () {
@@ -217,6 +223,9 @@ class CupManager {
 
 module.exports = {
   CUP_POINTS,
+  CUP_HOST_COMMANDS,
+  TIMEATTACK_HOST_COMMANDS,
+  hostCommandsForMode,
   compareShipsForPlacement,
   computePlacements,
   shuffleTracksOrder,
