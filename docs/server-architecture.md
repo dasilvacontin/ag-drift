@@ -55,7 +55,7 @@ Cup logic lives in `src/server/cup.js` (`CupManager`). When the first human join
 
 1. Tracks are shuffled (4 races).
 2. Mario Kart-style points are awarded to humans at each `RESULTS_SCREEN` (`[15, 12, 10, 9, …]`).
-3. Bot count is fixed for the whole cup from race-1 track's `nBots`.
+3. Bot count defaults to 7 for all tracks and cup sessions.
 4. Between races the results screen counts down (5 s, or 15 s after race 4), then **holds at 0** until the server calls `changeTrack()` for the next track (full turn reset + rebootstrap).
 5. After race 4 the cup winner is announced, scores reset, tracks re-shuffle, and a new cup begins.
 
@@ -119,7 +119,7 @@ When the server boots (`src/server/index.js`):
 
    This is a self-correcting timer: each tick advances `game.lastTick`, and the next tick is scheduled to fire at `lastTick + TIME_STEP`, compensating for drift.
 
-5. **AI bots are spawned once at boot** via `spawnBotsForTrack(track.nBots)`. They persist across cup restarts and human join/leave; only `/bots off` removes them (and `/bots on` can add them back).
+5. **AI bots are spawned once at boot** via `spawnBotsForTrack(DEFAULT_BOT_COUNT)` (7). They persist across cup restarts and human join/leave; only `/bots off` removes them (and `/bots on` can add them back).
 
 6. **Socket.io connection handlers** are registered for join, events, ping, chat (including Host commands), and disconnect.
 

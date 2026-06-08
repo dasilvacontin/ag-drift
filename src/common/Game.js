@@ -7,11 +7,8 @@ const Ship = require('./Ship.js')
 const C = require('./constants.js')
 
 const { positionForShipId } = Turn
-
-const playerColors = {
-  C4spanier: parseInt('0xC40000'),
-  nimba: parseInt('0x0399a1')
-}
+const { maxLapsForMap } = require('./tracks.js')
+const { pickShipColor } = require('./colors.js')
 
 const gravity = [0, 0]
 let world = new p2.World({ gravity })
@@ -64,16 +61,6 @@ function resetWorld (world) {
 }
 
 function getId (socket: Socket) { return (socket.client && socket.client.id) || socket.id }
-
-function randomColor () {
-  const tri1 = Math.floor(Math.random() * 3)
-  let tri2 = tri1
-  while (tri2 === tri1) tri2 = Math.floor(Math.random() * 3)
-  const weak = Math.floor(Math.random() * (0xFF + 1))
-  const color = (0xFF << (tri1 * 8)) +
-                (weak << (tri2 * 8))
-  return color
-}
 
 class Game {
   map: Track
@@ -170,14 +157,29 @@ class Game {
     this.generateCellBodies()
   }
 
-  resetForTrackChange (map: Track, { includeBots = true }: { includeBots?: boolean } = {}) {
+  resetForTrackChange (
+    map: Track,
+    { includeBots = true, gridOrder }: { includeBots?: boolean, gridOrder?: Array<string> } = {}
+  ) {
     if (!this.isServer) return
 
-    const roster = this.turn.ships.map((ship, shipId) => {
-      if (!ship) return null
-      if (!includeBots && ship.isABot()) return null
-      return { shipId, username: ship.username, color: ship.color }
-    })
+    const roster = this.turn.ships
+      .map((ship, shipId) => {
+        if (!ship) return null
+        if (!includeBots && ship.isABot()) return null
+        return { shipId, username: ship.username, color: ship.color }
+      })
+      .filter(entry => entry != null)
+
+    if (gridOrder && gridOrder.length > 0) {
+      const orderIndex = new Map(gridOrder.map((username, i) => [username, i]))
+      roster.sort((a, b) => {
+        const aIdx = orderIndex.has(a.username) ? orderIndex.get(a.username) : Number.MAX_SAFE_INTEGER
+        const bIdx = orderIndex.has(b.username) ? orderIndex.get(b.username) : Number.MAX_SAFE_INTEGER
+        if (aIdx !== bIdx) return aIdx - bIdx
+        return a.shipId - b.shipId
+      })
+    }
 
     this.changeMap(map)
     this.pendingPlayerEventBroadcasts = []
@@ -186,7 +188,6 @@ class Game {
     const ships = []
     let gridSlot = 0
     roster.forEach((entry) => {
-      if (!entry) return
       const position = positionForShipId(map, gridSlot)
       ships[entry.shipId] = new Ship({
         position: [position[0], position[1]],
@@ -265,7 +266,12 @@ class Game {
     const shipId = this.turn.getFreeShipSlot()
     this.socketToShip[socketId] = shipId
 
-    const color = colorOverride != null ? colorOverride : (playerColors[username] || randomColor())
+    const reservedColors = this.turn.serverEvents
+      .filter((sev) => sev.type === C.SERVER_EVENT.SPAWN_PLAYER)
+      .map((sev) => sev.color)
+    const color = colorOverride != null
+      ? colorOverride
+      : pickShipColor(this.turn.ships, Math.random, reservedColors)
     const event = {
       type: C.SERVER_EVENT.SPAWN_PLAYER,
       val: shipId,
@@ -471,7 +477,7 @@ class Game {
   isPlayerInLastLap (username) {
     const ship = this.turn.ships.find(s => s && (s.username === username))
     if (!ship) return false
-    return (ship.lap === C.MAX_LAPS)
+    return (ship.lap === maxLapsForMap(this.map))
   }
 
   lapForPlayer (username) {

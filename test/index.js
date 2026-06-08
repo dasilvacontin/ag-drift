@@ -6,6 +6,7 @@ const Ship = require('../src/common/Ship')
 const PlayerInput = require('../src/common/PlayerInput')
 const C = require('../src/common/constants')
 const PlayerEvent = require('../src/common/PlayerEvent')
+const { SHIP_COLOR_VALUES } = require('../src/common/colors')
 
 const testTrack = {
   name: 'test',
@@ -25,6 +26,7 @@ function createServerGame () {
 function mockSocket () {
   const emitted = []
   return {
+    id: `socket-${emitted.length}`,
     emit (event, payload) {
       emitted.push({ event, payload })
     },
@@ -194,6 +196,75 @@ describe('Game event batching', () => {
         'to be',
         game.turn.ships[0].position[0] + 3
       )
+    })
+
+    it('orders the starting grid by finish position when gridOrder is provided', () => {
+      const game = createServerGame()
+      const makeShip = (username, lap, laptimes) => new Ship({
+        position: [0, 0],
+        velocity: [0, 0],
+        angle: 0,
+        username,
+        color: 0xff0000,
+        input: new PlayerInput(),
+        checkpoint: 1,
+        lap,
+        currentLaptime: 0,
+        laptimes,
+        isDrafting: false
+      })
+
+      game.turn.ships[0] = makeShip('Alice', 2, [0, 5000])
+      game.turn.ships[1] = makeShip('Bob (Bot)', 2, [0, 3000])
+      game.turn.ships[2] = makeShip('Carol', 2, [0, 4000])
+
+      game.resetForTrackChange(testTrack, {
+        gridOrder: ['Bob (Bot)', 'Carol', 'Alice']
+      })
+
+      expect(game.turn.ships[1].position[0], 'to be less than', game.turn.ships[2].position[0])
+      expect(game.turn.ships[2].position[0], 'to be less than', game.turn.ships[0].position[0])
+    })
+  })
+
+  describe('onPlayerJoin', () => {
+    it('assigns an unused palette color when joining a race', () => {
+      const game = createServerGame()
+      const socket = mockSocket()
+      game.onPlayerJoin(socket, 'Alice')
+      game.lastTick = Date.now() - C.TIME_STEP - 1
+      game.tick()
+
+      const ship = game.turn.ships[0]
+      expect(ship, 'to be truthy')
+      expect(SHIP_COLOR_VALUES, 'to contain', ship.color)
+    })
+
+    it('avoids colors already used by visible racers', () => {
+      const game = createServerGame()
+      game.turn.ships[0] = new Ship({
+        position: [0, 0],
+        velocity: [0, 0],
+        angle: 0,
+        username: 'Alice',
+        color: 0xFF0000,
+        input: new PlayerInput(),
+        checkpoint: 1,
+        lap: 0,
+        currentLaptime: 0,
+        laptimes: [0],
+        isDrafting: false
+      })
+
+      const socket = mockSocket()
+      game.onPlayerJoin(socket, 'Bob')
+      game.lastTick = Date.now() - C.TIME_STEP - 1
+      game.tick()
+
+      const ship = game.turn.ships[1]
+      expect(ship, 'to be truthy')
+      expect(ship.color, 'not to be', 0xFF0000)
+      expect(SHIP_COLOR_VALUES, 'to contain', ship.color)
     })
   })
 

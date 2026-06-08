@@ -54,8 +54,8 @@ class Ship {
     this.isDrafting = Boolean(isDrafting)
   }
 
-  hasFinishedRace () {
-    return (this.lap > C.MAX_LAPS)
+  hasFinishedRace (maxLaps: number = C.MAX_LAPS) {
+    return (this.lap > maxLaps)
   }
 
   isABot () {

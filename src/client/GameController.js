@@ -3,6 +3,7 @@ const PIXI = require('pixi.js')
 const Game = require('../common/Game.js')
 const Turn = require('../common/Turn.js')
 const ShipController = require('./ShipController.js')
+const { maxLapsForMap } = require('../common/tracks.js')
 const { buildAiGridOverlay } = require('./aiGridOverlay.js')
 const C = require('../common/constants.js')
 
@@ -120,7 +121,7 @@ class GameController {
         // this.stage.addChild(shipController.draftPointSprite3)
         this.ships[i] = shipController
       }
-      shipController.update(ship)
+      shipController.update(ship, maxLapsForMap(this.game.map))
     })
     if (this.aiGridOverlay) this.stage.addChild(this.aiGridOverlay)
     this.foreground && this.stage.addChild(this.foreground)

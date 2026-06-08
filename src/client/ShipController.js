@@ -179,7 +179,7 @@ class ShipController {
     }
   }
 
-  update (ship: Ship) {
+  update (ship: Ship, maxLaps: number) {
     if (this.color !== ship.color) this.regenerateSprites(ship)
     this.ship = ship
 
@@ -187,7 +187,7 @@ class ShipController {
     this.sprite.position = new PIXI.Point(position[0], position[1])
     this.sprite.rotation = angle
 
-    const canMove = !ship.hasFinishedRace()
+    const canMove = !ship.hasFinishedRace(maxLaps)
     // turning sound
     if (canMove && (input.turnL || input.turnR)) turnSound.play()
 

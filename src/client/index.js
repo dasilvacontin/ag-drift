@@ -15,6 +15,7 @@ const GameController = require('./GameController.js')
 const PlayerEvent = require('../common/PlayerEvent.js')
 const PlayerInput = require('../common/PlayerInput.js')
 const C = require('../common/constants.js')
+const { maxLapsForMap } = require('../common/tracks.js')
 const { timeToString, repeat } = require('../common/utils.js')
 
 const DEBUG_MODE = Boolean(localStorage.getItem('DEBUG'))
@@ -111,10 +112,11 @@ function trackTwitterRaceComplete () {
 }
 function switchBgMusic () {
   if (!gameController || !gameController.game) return
+  const trackMaxLaps = maxLapsForMap(gameController.game.map)
   const lap = gameController.game.lapForPlayer(username)
   if (lastLap === null) lastLap = lap
 
-  if (lastLap < lap && lap >= 2 && lap <= C.MAX_LAPS) {
+  if (lastLap < lap && lap >= 2 && lap <= trackMaxLaps) {
     lapSound.play()
   }
   lastLap = lap
@@ -132,17 +134,17 @@ function switchBgMusic () {
 
     case C.GAME_STATE.IN_PROGRESS:
     case C.GAME_STATE.FINISH_COUNTDOWN:
-      if (lap < C.MAX_LAPS && musicBeingPlayed !== 'BG_MUSIC' && musicBeingPlayed !== 'VICTORY_MUSIC') {
+      if (lap < trackMaxLaps && musicBeingPlayed !== 'BG_MUSIC' && musicBeingPlayed !== 'VICTORY_MUSIC') {
         bgMusicFinalLap && bgMusicFinalLap.stop()
         bgMusic.play()
         musicBeingPlayed = 'BG_MUSIC'
-      } else if (lap === C.MAX_LAPS && musicBeingPlayed !== 'FINAL_LAP' && musicBeingPlayed !== 'VICTORY_MUSIC') {
+      } else if (lap === trackMaxLaps && musicBeingPlayed !== 'FINAL_LAP' && musicBeingPlayed !== 'VICTORY_MUSIC') {
         if (bgMusicFinalLap) {
           bgMusic.stop()
           bgMusicFinalLap.play()
         }
         musicBeingPlayed = 'FINAL_LAP'
-      } else if (lap >= C.MAX_LAPS + 1 && musicBeingPlayed !== 'VICTORY_MUSIC') {
+      } else if (lap >= trackMaxLaps + 1 && musicBeingPlayed !== 'VICTORY_MUSIC') {
         bgMusic.stop()
         bgMusicFinalLap && bgMusicFinalLap.stop()
         if (!finishedRaceMusic.playing()) finishedRaceMusic.play()
@@ -155,7 +157,7 @@ function switchBgMusic () {
       if (musicBeingPlayed !== 'RESULTS_SCREEN_MUSIC') {
         bgMusic.stop()
         bgMusicFinalLap && bgMusicFinalLap.stop()
-        if (lap >= C.MAX_LAPS + 1 && musicBeingPlayed !== 'VICTORY_MUSIC') {
+        if (lap >= trackMaxLaps + 1 && musicBeingPlayed !== 'VICTORY_MUSIC') {
           if (!finishedRaceMusic.playing()) finishedRaceMusic.play()
           trackTwitterRaceComplete()
         }
@@ -381,9 +383,10 @@ function gameLoop () {
   ships.forEach((ship, i) => {
     if (ship == null || i !== myShipId) return
 
-    if (!hadFinishedRace && ship.hasFinishedRace()) {
+    const trackMaxLaps = maxLapsForMap(game.map)
+    if (!hadFinishedRace && ship.hasFinishedRace(trackMaxLaps)) {
       mixpanel.people.increment('races finished')
-      const position = ships.reduce((sum, ship, i) => sum + (ship && ship.hasFinishedRace() ? 1 : 0), 0)
+      const position = ships.reduce((sum, ship, i) => sum + (ship && ship.hasFinishedRace(trackMaxLaps) ? 1 : 0), 0)
       mixpanel.track('Player finished race', {
         username: ship.username,
         track: game.map.id,
@@ -392,7 +395,7 @@ function gameLoop () {
         position: position
       })
     }
-    hadFinishedRace = ship.hasFinishedRace()
+    hadFinishedRace = ship.hasFinishedRace(trackMaxLaps)
 
     const gamepad = gamepads[0]
     const oldInput = oldInputs[i] || new PlayerInput()
@@ -535,6 +538,7 @@ function filterNulls<T> (arr: Array<?T>) : Array<T> {
 
 const leaderboard = document.getElementById('leaderboard')
 function renderLeaderboard () {
+  const trackMaxLaps = maxLapsForMap(game.map)
   const ships: Array<Ship> = filterNulls(game.turn.ships)
   ships.sort((a: Ship, b: Ship) => {
     if (a.lap > b.lap) return -1
@@ -570,9 +574,9 @@ function renderLeaderboard () {
   ships.forEach((ship) => {
     if (ship == null) return
     const { color, username } = ship
-    const lap = ship.lap > C.MAX_LAPS
+    const lap = ship.lap > trackMaxLaps
       ? '⚑'
-      : `${Math.max(1, ship.lap)}/${C.MAX_LAPS}`
+      : `${Math.max(1, ship.lap)}/${trackMaxLaps}`
 
     // time stuff
     const totalTime = ship.totalTime()

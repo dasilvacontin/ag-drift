@@ -5,6 +5,7 @@ const { vec2 } = p2
 const PlayerInput = require('./PlayerInput.js')
 const Ship = require('./Ship.js')
 const C = require('./constants.js')
+const { maxLapsForMap } = require('./tracks.js')
 const { log, timeToString } = require('./utils.js')
 // const Mixpanel = require('mixpanel')
 
@@ -148,6 +149,8 @@ class Turn {
   }
 
   evolve (map: Track, world: p2.World, bodies: Array<p2.Body>, dt: number, isServer: boolean, sessionMode: string = C.SESSION_MODE.IDLE) {
+    const maxLaps = maxLapsForMap(map)
+
     // create / remove bodies
     const length = Math.max(this.ships.length, bodies.length)
     for (let i = 0; i < length; ++i) {
@@ -245,7 +248,7 @@ class Turn {
       input.turnR = false
 
       playerEvents.forEach(input.applyPlayerEvent, input)
-      if (!ship.hasFinishedRace() &&
+      if (!ship.hasFinishedRace(maxLaps) &&
           (state === C.GAME_STATE.IN_PROGRESS ||
            state === C.GAME_STATE.FINISH_COUNTDOWN)) {
         if (map.boostDisabled) {
@@ -338,7 +341,7 @@ class Turn {
 
       // increase current lap's time
       if ((state === C.GAME_STATE.IN_PROGRESS ||
-        state === C.GAME_STATE.FINISH_COUNTDOWN) && !ship.hasFinishedRace()) {
+        state === C.GAME_STATE.FINISH_COUNTDOWN) && !ship.hasFinishedRace(maxLaps)) {
         laptimes[currentLaptime] += (dt / 1000)
       }
 
@@ -353,7 +356,7 @@ class Turn {
         } else if (checkpoint > oldCheckpoint + 1) {
           // number jump indicates going from last checkpoint to
           // first checkpoint, i.e. crossed finish line
-          const hadFinishedRace = ship.hasFinishedRace()
+          const hadFinishedRace = ship.hasFinishedRace(maxLaps)
           ship.lap++
 
           // complete laptime if it applies
@@ -362,8 +365,8 @@ class Turn {
             laptimes.push(0)
           }
 
-          if (!hadFinishedRace && ship.hasFinishedRace()) {
-            const position = ships.reduce((sum, ship, i) => sum + (ship && ship.hasFinishedRace() ? 1 : 0), 0)
+          if (!hadFinishedRace && ship.hasFinishedRace(maxLaps)) {
+            const position = ships.reduce((sum, ship, i) => sum + (ship && ship.hasFinishedRace(maxLaps) ? 1 : 0), 0)
             if (!ship.isABot()) {
               // sending race results to telegram
               log(
@@ -420,7 +423,7 @@ class Turn {
 
       case C.GAME_STATE.FINISH_COUNTDOWN:
         if (counter === 0 ||
-            ships.every(ship => !ship || ship.hasFinishedRace() || ship.isABot())) {
+            ships.every(ship => !ship || ship.hasFinishedRace(maxLaps) || ship.isABot())) {
           state = C.GAME_STATE.RESULTS_SCREEN
           counter = C.RESULTS_SCREEN_S
         }
