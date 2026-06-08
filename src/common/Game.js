@@ -2,7 +2,11 @@
 const p2 = require('p2')
 const Socket = require('socket.io-client/lib/socket.js')
 const Turn = require('./Turn.js')
+const PlayerInput = require('./PlayerInput.js')
+const Ship = require('./Ship.js')
 const C = require('./constants.js')
+
+const { positionForShipId } = Turn
 
 const playerColors = {
   C4spanier: parseInt('0xC40000'),
@@ -86,12 +90,14 @@ class Game {
 
   lava: number
   lastTick: number
+  sessionMode: string
   pendingPlayerEventBroadcasts: Array<{ shipId: number, events: Array<GameEvent>, turnIndex: number }>
   pendingServerEventBroadcasts: Array<{ event: GameEvent, turnIndex: number }>
 
   constructor (map : Track, isServer: boolean = false) {
     this.map = map
     this.isServer = isServer
+    this.sessionMode = C.SESSION_MODE.IDLE
 
     this.turn = new Turn([], [], [])
     this.turnIndex = 0
@@ -159,6 +165,62 @@ class Game {
     return this.socketToShip[socketId]
   }
 
+  changeMap (map: Track) {
+    this.map = map
+    this.generateCellBodies()
+  }
+
+  resetForTrackChange (map: Track) {
+    if (!this.isServer) return
+
+    const roster = this.turn.ships.map((ship, shipId) => {
+      if (!ship) return null
+      return { shipId, username: ship.username, color: ship.color }
+    })
+
+    this.changeMap(map)
+    this.pendingPlayerEventBroadcasts = []
+    this.pendingServerEventBroadcasts = []
+
+    const ships = []
+    roster.forEach((entry) => {
+      if (!entry) return
+      const position = positionForShipId(map, entry.shipId)
+      ships[entry.shipId] = new Ship({
+        position: [position[0], position[1]],
+        velocity: [0, 0],
+        angle: -Math.PI / 2,
+        username: entry.username,
+        color: entry.color,
+        input: new PlayerInput(),
+        checkpoint: 1,
+        lap: 0,
+        currentLaptime: 0,
+        laptimes: [0],
+        isDrafting: false
+      })
+    })
+
+    this.turnIndex = 0
+    this.lava = 0
+    this.lastTick = Date.now()
+    this.turn = new Turn(
+      ships,
+      [],
+      [],
+      C.GAME_STATE.START_COUNTDOWN,
+      C.START_COUNTDOWN_S
+    )
+    this.turns = [this.turn]
+  }
+
+  bootstrapAllSockets () {
+    if (!this.isServer) return
+    this.sockets.forEach((socket) => {
+      if (socket != null) this.bootstrapSocket(socket)
+    })
+  }
+
   resimulateFrom (turnIndex: number) {
     if (this.turnIndex <= turnIndex) return new Error('wtf')
 
@@ -179,7 +241,7 @@ class Game {
         world.addBody(body)
       })
 
-      nextTurn = currentTurn.evolve(this.map, world, bodies, C.TIME_STEP, this.isServer)
+      nextTurn = currentTurn.evolve(this.map, world, bodies, C.TIME_STEP, this.isServer, this.sessionMode)
       nextTurn.events = events
       nextTurn.serverEvents = serverEvents
       this.turns[i + 1] = nextTurn
@@ -193,14 +255,14 @@ class Game {
     }
   }
 
-  onPlayerJoin (socket: Socket, username: string, debug: boolean = false) {
+  onPlayerJoin (socket: Socket, username: string, debug: boolean = false, colorOverride: ?number = null, skipBootstrap: boolean = false) {
     if (!this.isServer) return
 
     const socketId = getId(socket)
     const shipId = this.turn.getFreeShipSlot()
     this.socketToShip[socketId] = shipId
 
-    const color = (playerColors[username] || randomColor())
+    const color = colorOverride != null ? colorOverride : (playerColors[username] || randomColor())
     const event = {
       type: C.SERVER_EVENT.SPAWN_PLAYER,
       val: shipId,
@@ -210,7 +272,7 @@ class Game {
     this.onServerEvent(event, this.turnIndex)
 
     this.sockets[shipId] = socket
-    this.bootstrapSocket(socket)
+    if (!skipBootstrap) this.bootstrapSocket(socket)
     if (debug) this.debugSockets.push(socket)
   }
 
@@ -238,7 +300,8 @@ class Game {
       map: this.map,
       turnsSlice,
       shipId,
-      lastTick: this.lastTick
+      lastTick: this.lastTick,
+      sessionMode: this.sessionMode
     })
   }
 
@@ -430,7 +493,7 @@ class Game {
       world.addBody(body)
     })
 
-    return this.turn.evolve(this.map, world, bodies, dt, false)
+    return this.turn.evolve(this.map, world, bodies, dt, false, this.sessionMode)
   }
 }
 

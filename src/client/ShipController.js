@@ -31,6 +31,7 @@ class ShipController {
   draftPointSprite: PIXI.DisplayObject
   draftPointSprite2: PIXI.DisplayObject
   draftPointSprite3: PIXI.DisplayObject
+  centerDot: ?PIXI.Graphics
   color: number
   frontLeftFire: PIXI.DisplayObject
   rearLeftFire: PIXI.DisplayObject
@@ -39,11 +40,15 @@ class ShipController {
   mainFire: PIXI.DisplayObject
   engineSoundId: ?number
   ship: Ship
+  zoom: number
+  showCenterDot: boolean
 
   turnLtimer: number
   turnRtimer: number
 
-  constructor (ship: Ship) {
+  constructor (ship: Ship, zoom: number = 12) {
+    this.zoom = zoom
+    this.showCenterDot = typeof localStorage !== 'undefined' && Boolean(localStorage.getItem('DEBUG'))
     this.regenerateSprites(ship)
     this.turnLtimer = 0
     this.turnRtimer = 0
@@ -161,6 +166,17 @@ class ShipController {
     this.draftVFX.endFill()
     this.draftVFX.alpha = 0.24
     sprite.addChild(this.draftVFX)
+
+    if (this.showCenterDot && this.centerDot == null) {
+      const pixelSize = 1 / this.zoom
+      const centerDot = new PIXI.Graphics()
+      centerDot.beginFill(0xFF00FF)
+      centerDot.drawRect(-pixelSize / 2, -pixelSize / 2, pixelSize, pixelSize)
+      centerDot.endFill()
+      centerDot.position.set(1, 1)
+      sprite.addChild(centerDot)
+      this.centerDot = centerDot
+    }
   }
 
   update (ship: Ship) {

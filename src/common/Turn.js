@@ -55,6 +55,19 @@ function positionForShipId (map: Track, shipId: number) {
   return [startJ * C.CELL_EDGE + dx, startI * C.CELL_EDGE + dy]
 }
 
+function resetShipsOnMap (ships: Array<?Ship>, map: Track) {
+  ships.forEach((ship, i) => {
+    if (!ship) return
+    ship.position = positionForShipId(map, i)
+    ship.velocity = [0, 0]
+    ship.angle = -Math.PI / 2
+    ship.checkpoint = 1
+    ship.lap = 0
+    ship.currentLaptime = 0
+    ship.laptimes = [0]
+  })
+}
+
 class Turn {
   ships: Array<?Ship>
   events: Array<?Array<GameEvent>>
@@ -132,7 +145,7 @@ class Turn {
     return true
   }
 
-  evolve (map: Track, world: p2.World, bodies: Array<p2.Body>, dt: number, isServer: boolean) {
+  evolve (map: Track, world: p2.World, bodies: Array<p2.Body>, dt: number, isServer: boolean, sessionMode: string = C.SESSION_MODE.IDLE) {
     // create / remove bodies
     const length = Math.max(this.ships.length, bodies.length)
     for (let i = 0; i < length; ++i) {
@@ -388,7 +401,9 @@ class Turn {
     })
 
     // game state machine
-    counter = Math.ceil(counter - 1)
+    if (!(state === C.GAME_STATE.RESULTS_SCREEN && counter === 0 && sessionMode === C.SESSION_MODE.CUP)) {
+      counter = Math.ceil(counter - 1)
+    }
     switch (state) {
       case C.GAME_STATE.START_COUNTDOWN:
         // dont start start countdown unless there's a human
@@ -410,20 +425,10 @@ class Turn {
         break
 
       case C.GAME_STATE.RESULTS_SCREEN:
-        if (counter === 0) {
-          // game reset
+        if (counter === 0 && sessionMode !== C.SESSION_MODE.CUP) {
           state = C.GAME_STATE.START_COUNTDOWN
           counter = C.START_COUNTDOWN_S
-          nextShips.forEach((ship, i) => {
-            if (!ship) return
-            ship.position = positionForShipId(map, i)
-            ship.velocity = [0, 0]
-            ship.angle = -Math.PI / 2
-            ship.checkpoint = 1
-            ship.lap = 0
-            ship.currentLaptime = 0
-            ship.laptimes = [0]
-          })
+          resetShipsOnMap(nextShips, map)
         }
         break
     }
@@ -440,3 +445,5 @@ class Turn {
 }
 
 module.exports = Turn
+module.exports.positionForShipId = positionForShipId
+module.exports.resetShipsOnMap = resetShipsOnMap

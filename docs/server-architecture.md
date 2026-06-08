@@ -37,10 +37,47 @@ Transport is **Socket.io** (not raw WebSockets). There is no REST game API.
 
 ---
 
+## Session modes: cup, time attack, and idle
+
+The server supports three **session modes** (`idle`, `cup`, `timeattack`), set on the server and sent to clients via the `sessionMode` field in `game:bootstrap`:
+
+| Mode | Entered by | Between races |
+|------|------------|-----------------|
+| `idle` | Server boot; all humans leave | Auto-reset on the same track (bot loop) |
+| `cup` | First human joins; Host `/restart-cup` | Results screen holds → server `changeTrack()` (turn reset + rebootstrap) |
+| `timeattack` | Host `/timeattack` + track number | Auto-reset on the same track |
+
+Track switches discard turn history and rebootstrap all connected clients. `Game.resetForTrackChange()` sets `turnIndex` and `lava` to 0, places existing ships on the new grid in `START_COUNTDOWN`, and sends a fresh `game:bootstrap` to every player. Session mode is included in the bootstrap payload.
+
+### Cup mode
+
+Cup logic lives in `src/server/cup.js` (`CupManager`). When the first human joins:
+
+1. Tracks are shuffled (4 races).
+2. Mario Kart-style points are awarded to humans at each `RESULTS_SCREEN` (`[15, 12, 10, 9, …]`).
+3. Bot count is fixed for the whole cup from race-1 track's `nBots`.
+4. Between races the results screen counts down (5 s, or 15 s after race 4), then **holds at 0** until the server calls `changeTrack()` for the next track (full turn reset + rebootstrap).
+5. After race 4 the cup winner is announced, scores reset, tracks re-shuffle, and a new cup begins.
+
+When all humans leave, the cup resets to **idle** (no scoring, no progression).
+
+### Host commands (chat)
+
+Host-only commands (first human = Host; random transfer on Host disconnect):
+
+- `/restart-cup` — fresh 4-race cup shuffle
+- `/timeattack` — prompts numbered track list; Host replies `1`–`4`
+- `/bots on` / `/bots off` — toggle AI bots and restart the session
+
+Connect/disconnect system messages: `"Alice connected"` / `"Bob left"`.
+
+---
+
 ## Key files
 
 | File | Role |
 |------|------|
+| `src/server/cup.js` | Cup state, scoring, placement sort, chat message formatters |
 | `src/server/index.js` | Server entry point: Express, Socket.io, tick scheduler, AI bots, socket handlers |
 | `src/common/Game.js` | Core game engine: turn history, tick loop, resimulation, player join/leave |
 | `src/common/Turn.js` | Single simulation step: physics, checkpoints, laps, game state machine |
@@ -60,15 +97,16 @@ When the server boots (`src/server/index.js`):
 
 1. **Express + HTTP + Socket.io** are created. Static files are served from `public/`.
 
-2. **A track is selected** — one of four tracks, chosen by day-of-week (`getDay() % 4`) or overridden with the `FORCED_TRACK_CHOICE` env var. Each track defines its grid layout, AI grid, bot count, music, zoom, and other metadata.
+2. **A track is selected** — default track from `CupManager` (or overridden with `FORCED_TRACK_CHOICE`). Session starts in **idle** mode with bots racing and auto-resetting.
 
-3. **A `Game` instance is created** with `isServer: true`:
+3. **A `Game` instance is created** with `isServer: true` and `sessionMode: 'idle'`:
 
    ```js
    const game = new Game(track, true)
+   game.sessionMode = C.SESSION_MODE.IDLE
    ```
 
-4. **The tick scheduler starts** immediately:
+4. **The tick scheduler starts** immediately (includes cup state watcher for scoring and track changes):
 
    ```js
    function tickAndSchedule () {
@@ -81,9 +119,9 @@ When the server boots (`src/server/index.js`):
 
    This is a self-correcting timer: each tick advances `game.lastTick`, and the next tick is scheduled to fire at `lastTick + TIME_STEP`, compensating for drift.
 
-5. **AI bots are spawned** via `createNBots(track.nBots)`. Bots use fake socket objects that feed into the same `onPlayerEvents` path as human players.
+5. **AI bots are spawned once at boot** via `spawnBotsForTrack(track.nBots)`. They persist across cup restarts and human join/leave; only `/bots off` removes them (and `/bots on` can add them back).
 
-6. **Socket.io connection handlers** are registered for join, events, ping, chat, and disconnect.
+6. **Socket.io connection handlers** are registered for join, events, ping, chat (including Host commands), and disconnect.
 
 7. **The server listens** on `PORT` (default 3000).
 
@@ -97,7 +135,7 @@ The game advances in discrete **turns** at 60 Hz (`TIME_STEP = 1000/60 ≈ 16.67
 
 - `ships` — array of ship states (position, velocity, angle, lap info, input, etc.)
 - `events` — player input events indexed by ship ID
-- `serverEvents` — spawn/destroy events
+- `serverEvents` — spawn/destroy, session mode, track changes
 - `state` — game state machine phase
 - `counter` — tick counter for the current phase
 
@@ -195,7 +233,7 @@ The p2 physics world is fully reset between each replay step. Wall colliders are
 | `gameStartCountdown` | 3 seconds (180 ticks) | Waits for at least one human player before counting down |
 | `gameInProgress` | Until first finisher | Active racing; lap times accumulate |
 | `gameFinishCountdown` | 15 seconds (900 ticks) | First finisher triggers this; others can still finish |
-| `gameResultsScreen` | 5 seconds (300 ticks) | Shows results, then resets all ships to starting positions |
+| `gameResultsScreen` | 5 seconds (300 ticks); 15 s after cup race 4 | Shows results; cup mode holds at 0 until `changeTrack()`; idle/time attack auto-reset |
 
 After the results screen, the game loops back to `gameStartCountdown`.
 
@@ -379,7 +417,7 @@ If a client references a turn older than `lava`, or turn data is missing during 
 | C→S | `player:lost` | — | Client detects desync |
 | C→S | `game:ping` | — | Every 500 ms |
 | C→S | `msg` | `(text)` | Chat message |
-| S→C | `game:bootstrap` | `{ initialTurn, map, turnsSlice, shipId, lastTick }` | Join + desync recovery |
+| S→C | `game:bootstrap` | `{ initialTurn, map, turnsSlice, shipId, lastTick, sessionMode }` | Join, desync recovery, and track change |
 | S→C | `player:events` | `(shipId, events, turnIndex)` | Any player's input change |
 | S→C | `server:event` | `(event, turnIndex)` | Player spawn/destroy |
 | S→C | `game:pong` | `(serverNow)` | Ping response |
@@ -399,7 +437,7 @@ If a client references a turn older than `lava`, or turn data is missing during 
 | `CLIENT_LEAD` | 0 (dynamic on client) | Client clock offset, adjusted via ping |
 | `FORCE` | 300 | Thruster force magnitude |
 | `CELL_EDGE` | 10 | Grid cell size in world units |
-| `MAX_LAPS` | 5 | Laps to finish a race |
+| `MAX_LAPS` | 2 | Laps to finish a race |
 | `START_COUNTDOWN_S` | 180 ticks (3 s) | Pre-race countdown |
 | `FINISH_COUNTDOWN_S` | 900 ticks (15 s) | Post-first-finisher window |
 | `RESULTS_SCREEN_S` | 300 ticks (5 s) | Results screen before reset |

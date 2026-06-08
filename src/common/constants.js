@@ -18,7 +18,7 @@ const constants = {
   WALL_COLOR: 0x000000,
   ROAD_COLOR: 0xEBEBEB, // 0xAAAAFF
 
-  MAX_LAPS: 5,
+  MAX_LAPS: 2,
 
   GAME_STATE: {
     START_COUNTDOWN: 'gameStartCountdown',
@@ -30,9 +30,17 @@ const constants = {
   FINISH_COUNTDOWN_S: 15 * 1000 / TIME_STEP,
   RESULTS_SCREEN_S: 5 * 1000 / TIME_STEP,
 
+  SESSION_MODE: {
+    IDLE: 'idle',
+    CUP: 'cup',
+    TIMEATTACK: 'timeattack'
+  },
+
   SERVER_EVENT: {
     SPAWN_PLAYER: 'spawnPlayer',
-    DESTROY_PLAYER: 'destroyPlayer'
+    DESTROY_PLAYER: 'destroyPlayer',
+    CHANGE_TRACK: 'changeTrack',
+    SET_SESSION_MODE: 'setSessionMode'
   },
 
   PLAYER_EVENT: {

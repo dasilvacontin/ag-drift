@@ -3,6 +3,7 @@ const PIXI = require('pixi.js')
 const Game = require('../common/Game.js')
 const Turn = require('../common/Turn.js')
 const ShipController = require('./ShipController.js')
+const { buildAiGridOverlay } = require('./aiGridOverlay.js')
 const C = require('../common/constants.js')
 
 const colors = {}
@@ -23,15 +24,20 @@ class GameController {
   stage: PIXI.Stage
   ships: Array<ShipController>
   foreground: PIXI.Sprite
+  aiGridOverlay: ?PIXI.Container
   lastTurn: Turn
 
   constructor (game: Game, debug: boolean = false) {
     this.game = game
+    this.trackId = game.map.id
     this.stage = new PIXI.Container()
     this.ships = []
 
     // add sprites for map
     if (debug) return
+
+    const showAiGridOverlay = typeof localStorage !== 'undefined' &&
+      Boolean(localStorage.getItem('DEBUG'))
 
     if (game.map.background) {
       const background = new PIXI.Sprite.fromImage(game.map.background)
@@ -86,6 +92,11 @@ class GameController {
       foreground.height = C.CELL_EDGE * game.map.grid.length
       this.foreground = foreground
     }
+
+    if (showAiGridOverlay && game.map.aiGrid) {
+      this.aiGridOverlay = buildAiGridOverlay(game.map)
+      if (this.aiGridOverlay) this.stage.addChild(this.aiGridOverlay)
+    }
   }
 
   update (turn: Turn) {
@@ -102,7 +113,7 @@ class GameController {
 
       let shipController = this.ships[i]
       if (shipController == null) {
-        shipController = new ShipController(ship)
+        shipController = new ShipController(ship, this.game.map.zoom)
         this.stage.addChild(shipController.sprite)
         // this.stage.addChild(shipController.draftPointSprite)
         // this.stage.addChild(shipController.draftPointSprite2)
@@ -111,7 +122,11 @@ class GameController {
       }
       shipController.update(ship)
     })
+    if (this.aiGridOverlay) this.stage.addChild(this.aiGridOverlay)
     this.foreground && this.stage.addChild(this.foreground)
+    this.ships.forEach((shipController) => {
+      if (shipController) this.stage.addChild(shipController.sprite)
+    })
   }
 
   regenerateAllShipSprites () {

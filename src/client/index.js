@@ -53,7 +53,21 @@ let bgMusic
 let bgMusicFinalLap
 let finishedRaceMusic
 let lapSound
-let setupBackgroundMusic = function (config) {
+function setupBackgroundMusic (config) {
+  if (bgMusic) {
+    bgMusic.stop()
+    bgMusic.unload()
+  }
+  if (bgMusicFinalLap) {
+    bgMusicFinalLap.stop()
+    bgMusicFinalLap.unload()
+    bgMusicFinalLap = null
+  }
+  if (finishedRaceMusic) {
+    finishedRaceMusic.stop()
+    finishedRaceMusic.unload()
+  }
+
   bgMusic = new Howl({
     src: [config.bgmusicURL],
     preload: true,
@@ -74,18 +88,27 @@ let setupBackgroundMusic = function (config) {
     loop: false,
     autoplay: false
   })
-  lapSound = new Howl({
-    src: ['sounds/lapSound.wav'],
-    preload: true,
-    loop: false,
-    autoplay: false
-  })
-  setupBackgroundMusic = () => {}
+  if (!lapSound) {
+    lapSound = new Howl({
+      src: ['sounds/lapSound.wav'],
+      preload: true,
+      loop: false,
+      autoplay: false
+    })
+  }
+
+  musicBeingPlayed = null
+  lastLap = null
 }
 
 let musicBeingPlayed = null
 let lastLap = null
 const TWITTER_EVENT_RACE_COMPLETE = 'o8dsg'
+function trackTwitterRaceComplete () {
+  if (typeof twttr !== 'undefined' && twttr.conversion) {
+    twttr.conversion.trackPid(TWITTER_EVENT_RACE_COMPLETE, { tw_sale_amount: 0, tw_order_quantity: 0 })
+  }
+}
 function switchBgMusic () {
   if (!gameController || !gameController.game) return
   const lap = gameController.game.lapForPlayer(username)
@@ -124,7 +147,7 @@ function switchBgMusic () {
         bgMusicFinalLap && bgMusicFinalLap.stop()
         if (!finishedRaceMusic.playing()) finishedRaceMusic.play()
         musicBeingPlayed = 'VICTORY_MUSIC'
-        twttr.conversion.trackPid(TWITTER_EVENT_RACE_COMPLETE, { tw_sale_amount: 0, tw_order_quantity: 0 })
+        trackTwitterRaceComplete()
       }
       break
 
@@ -134,7 +157,7 @@ function switchBgMusic () {
         bgMusicFinalLap && bgMusicFinalLap.stop()
         if (lap >= C.MAX_LAPS + 1 && musicBeingPlayed !== 'VICTORY_MUSIC') {
           if (!finishedRaceMusic.playing()) finishedRaceMusic.play()
-          twttr.conversion.trackPid(TWITTER_EVENT_RACE_COMPLETE, { tw_sale_amount: 0, tw_order_quantity: 0 })
+          trackTwitterRaceComplete()
         }
         musicBeingPlayed = 'RESULTS_SCREEN_MUSIC'
       }
@@ -562,7 +585,16 @@ function renderLeaderboard () {
   if (game.turn.state === C.GAME_STATE.FINISH_COUNTDOWN) {
     leaderboardContent += `&nbsp;&nbsp;Finishing race in ${Math.ceil(game.turn.counter * C.TIME_STEP / 1000)}...`
   } else if (game.turn.state === C.GAME_STATE.RESULTS_SCREEN) {
-    leaderboardContent += `&nbsp;&nbsp;Restarting game in ${Math.ceil(game.turn.counter * C.TIME_STEP / 1000)}...`
+    const seconds = Math.ceil(game.turn.counter * C.TIME_STEP / 1000)
+    if (game.sessionMode === C.SESSION_MODE.CUP) {
+      if (game.turn.counter === 0) {
+        leaderboardContent += '&nbsp;&nbsp;Next race starting...'
+      } else {
+        leaderboardContent += `&nbsp;&nbsp;Next race in ${seconds}...`
+      }
+    } else {
+      leaderboardContent += `&nbsp;&nbsp;Restarting game in ${seconds}...`
+    }
   }
 
   if (leaderboard.innerHTML !== leaderboardContent) {
@@ -616,7 +648,34 @@ document.addEventListener('keyup', (e: KeyboardEvent) => {
   }
 })
 
-let isFirstLoad = true
+function rebuildGameController (track: Track) {
+  cameraZoom = track.zoom
+  setupBackgroundMusic({
+    bgmusicURL: track.bgmusic,
+    finalLapMusicURL: track.bgmusicFinalLap,
+    finishedRaceMusicURL: track.finishedRaceMusic
+  })
+  renderer.backgroundColor = track.skyboxColor || 0x000000
+
+  if (gameController != null) {
+    camera.removeChild(gameController.stage)
+  }
+
+  window.gameController = gameController = new GameController(game)
+  gameController.stage.scale = { x: cameraZoom, y: cameraZoom }
+  camera.addChild(gameController.stage)
+
+  if (DEBUG_MODE) {
+    debugGame = new Game(track)
+    debugGameController = new GameController(debugGame, true)
+    debugGameController.stage.alpha = 0.5
+    gameController.stage.addChild(debugGameController.stage)
+  } else {
+    debugGame = null
+    debugGameController = null
+  }
+}
+
 socket.on('game:bootstrap', (data) => {
   const initialTurn : number = data.initialTurn
   const track : Track = data.map
@@ -624,16 +683,11 @@ socket.on('game:bootstrap', (data) => {
   const turnsSlice : Array<Turn> = data.turnsSlice
   const shipId : number = data.shipId
   const lastTick : number = data.lastTick
+  const sessionMode : string = data.sessionMode || C.SESSION_MODE.IDLE
   myShipId = shipId
 
-  setupBackgroundMusic({
-    bgmusicURL: track.bgmusic,
-    finalLapMusicURL: track.bgmusicFinalLap,
-    finishedRaceMusicURL: track.finishedRaceMusic
-  })
-
   game = new Game(track)
-  renderer.backgroundColor = track.skyboxColor || 0x000000
+  game.sessionMode = sessionMode
   game.turns = []
   let lastTurn
   for (let i = 0; i < turnsSlice.length; ++i) {
@@ -653,23 +707,7 @@ socket.on('game:bootstrap', (data) => {
   game.lava = initialTurn
   game.resimulateFrom(initialTurn)
 
-  if (gameController != null) {
-    camera.removeChild(gameController.stage)
-  }
-
-  window.gameController = gameController = new GameController(game)
-  gameController.stage.scale = { x: cameraZoom, y: cameraZoom }
-  camera.addChild(gameController.stage)
-
-  if (DEBUG_MODE) {
-    debugGame = new Game(track)
-    debugGameController = new GameController(debugGame, true)
-    debugGameController.stage.alpha = 0.5
-    gameController.stage.addChild(debugGameController.stage)
-  } else {
-    debugGame = null
-    debugGameController = null
-  }
+  rebuildGameController(game.map)
 
   console.log('got bootstrapped by server')
   oldInputs = []
@@ -681,17 +719,6 @@ socket.on('game:bootstrap', (data) => {
       chatInput.style.boxShadow = `${hexColor} 2px 2px`
     }
   }, 0)
-
-  if (isFirstLoad) {
-    isFirstLoad = false
-    addSystemMessage(`Welcome to ag-drift! 🎶
-    April 6, 2022: Added dynamic best lap leaderboards.
-    April 9, 2022: Added Drafting game mechanic
-    Enjoy!`)
-    if (track.messages) {
-      track.messages.forEach(addSystemMessage)
-    }
-  }
 })
 
 socket.on('game:events:batch', (batch) => {
@@ -700,6 +727,9 @@ socket.on('game:events:batch', (batch) => {
     const minTurnIndex = game.applyEventsBatch(batch)
     if (minTurnIndex < game.turnIndex) {
       game.resimulateFrom(minTurnIndex)
+    }
+    if (gameController != null && game.map.id !== gameController.trackId) {
+      rebuildGameController(game.map)
     }
   } catch (e) {
     if (e instanceof C.InvalidTurnError) {
