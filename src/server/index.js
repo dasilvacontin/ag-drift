@@ -34,7 +34,8 @@ if (TELEGRAM_TOKEN != null) {
 const Game = require('../common/Game.js')
 const C = require('../common/constants.js')
 const { CupManager, computePlacements, shouldAdvanceCupRace } = require('./cup.js')
-const { tracks } = require('../common/tracks.js')
+const { handleHostCommand } = require('./commands.js')
+const { tracks, DEFAULT_BOT_COUNT } = require('../common/tracks.js')
 const { aiGridCellAtPosition } = require('../common/aiGrid.js')
 
 app.get('*', function (req, res, next) {
@@ -76,6 +77,7 @@ let resultsHoldEmitted = false
 let lastCompletedRaceWasFinal = false
 let pendingTimeAttackTrack = null
 let botsEnabled = true
+let cupBoostEnabled = false
 
 const BOT_NAME_POOL = [
   'Alice', 'Bob', 'Carlos', 'Diana', 'Elena', 'Frank', 'Grace', 'Hiro',
@@ -107,14 +109,6 @@ function pickBotName () {
   return botNamePool.pop()
 }
 
-function randomBotColor () {
-  const tri1 = Math.floor(Math.random() * 3)
-  let tri2 = tri1
-  while (tri2 === tri1) tri2 = Math.floor(Math.random() * 3)
-  const weak = Math.floor(Math.random() * (0xFF + 1))
-  return (0xFF << (tri1 * 8)) + (weak << (tri2 * 8))
-}
-
 function countHumans () {
   return game.turn.ships.filter(ship => ship && !ship.isABot()).length
 }
@@ -129,7 +123,14 @@ function setSessionMode (mode) {
   game.sessionMode = mode
 }
 
-function changeTrack (newTrack) {
+function trackForSession (sourceTrack) {
+  if (game.sessionMode === C.SESSION_MODE.CUP) {
+    return { ...sourceTrack, boostDisabled: !cupBoostEnabled }
+  }
+  return sourceTrack
+}
+
+function changeTrack (newTrack, { gridOrder }: { gridOrder?: Array<string> } = {}) {
   const trackChanged = track.id !== newTrack.id
   track = newTrack
   trackIndex = tracks.indexOf(newTrack)
@@ -137,9 +138,9 @@ function changeTrack (newTrack) {
   if (!botsEnabled) {
     destroyAllBots()
   }
-  game.resetForTrackChange(newTrack, { includeBots: botsEnabled })
+  game.resetForTrackChange(trackForSession(newTrack), { includeBots: botsEnabled, gridOrder })
   if (botsEnabled && bots.length === 0) {
-    spawnBotsForTrack(track.nBots)
+    spawnBotsForTrack(DEFAULT_BOT_COUNT)
   }
   bots.forEach((aiSocket) => {
     aiSocket.version = track.aiType
@@ -165,7 +166,6 @@ function spawnBotsForTrack (nBots) {
   refreshBotNamePool()
   for (let i = 0; i < nBots; ++i) {
     const displayName = `${pickBotName()} (Bot)`
-    const color = randomBotColor()
     const aiType = track.aiType
     const aiSocket = {
       id: `bot${bots.length} ${aiType}`,
@@ -173,10 +173,9 @@ function spawnBotsForTrack (nBots) {
       emit: _ => {},
       version: aiType,
       canBoost: false,
-      displayName,
-      color
+      displayName
     }
-    game.onPlayerJoin(aiSocket, displayName, false, color)
+    game.onPlayerJoin(aiSocket, displayName)
     bots.push(aiSocket)
   }
 }
@@ -190,12 +189,36 @@ function setBotsEnabled (enabled) {
   return true
 }
 
+function setBoostEnabled (enabled) {
+  if (enabled === cupBoostEnabled) return false
+  cupBoostEnabled = enabled
+  return true
+}
+
+function restartCurrentRace () {
+  if (!botsEnabled) {
+    destroyAllBots()
+  }
+  game.resetForTrackChange(trackForSession(track), { includeBots: botsEnabled })
+  if (botsEnabled && bots.length === 0) {
+    spawnBotsForTrack(DEFAULT_BOT_COUNT)
+  }
+  bots.forEach((aiSocket) => {
+    aiSocket.version = track.aiType
+  })
+  oldInputs.length = 0
+  prevState = game.turn.state
+  resultsHoldEmitted = false
+  game.bootstrapAllSockets()
+}
+
 function emitCupStartMessage () {
   if (!cup.hostUsername) return
   io.emit('system-msg', cup.formatCupStartMessage(
     cup.hostUsername,
     track.name,
-    cup.raceIndex + 1
+    cup.raceIndex + 1,
+    { botsEnabled, boostEnabled: cupBoostEnabled }
   ))
 }
 
@@ -205,6 +228,7 @@ function restartCupSession (hostUsername) {
   } else {
     cup.start(hostUsername)
   }
+  cupBoostEnabled = false
   game.sessionMode = C.SESSION_MODE.CUP
   changeTrack(tracks[cup.currentTrackIndex()])
   emitCupStartMessage()
@@ -215,8 +239,15 @@ function startTimeAttackSession (hostUsername) {
   cup.resetForNextSession()
   cup.assignHost(hostUsername)
   setSessionMode(C.SESSION_MODE.TIMEATTACK)
-  changeTrack(track)
+  restartCurrentRace()
   io.emit('system-msg', cup.formatTimeAttackStartMessage(track.name, hostUsername))
+  updateBestLapsForCurrentTrack({ broadcast: true })
+}
+
+function switchToTimeAttackTrack (hostUsername, trackNumber) {
+  pendingTimeAttackTrack = null
+  changeTrack(tracks[trackNumber - 1])
+  io.emit('system-msg', cup.formatTimeAttackStartMessage(tracks[trackNumber - 1].name, hostUsername))
 }
 
 function restartSession (hostUsername) {
@@ -230,6 +261,7 @@ function restartSession (hostUsername) {
 }
 
 let timerId
+
 function tickAndSchedule () {
   const counterBeforeTick = game.turn.counter
 
@@ -268,10 +300,15 @@ function tickAndSchedule () {
     resultsHoldEmitted = true
 
     if (!lastCompletedRaceWasFinal) {
+      const gridOrder = computePlacements(game.turn.ships).map(p => p.username)
       cup.advanceRace()
-      changeTrack(tracks[cup.currentTrackIndex()])
-      const raceNum = cup.raceIndex + 1
-      io.emit('system-msg', `Race ${raceNum}/4: ${track.name}`)
+      changeTrack(tracks[cup.currentTrackIndex()], { gridOrder })
+      io.emit('system-msg', cup.formatCupRaceMessage(
+        cup.hostUsername,
+        track.name,
+        cup.raceIndex + 1,
+        { botsEnabled, boostEnabled: cupBoostEnabled }
+      ))
     } else {
       changeTrack(tracks[cup.currentTrackIndex()])
       emitCupStartMessage()
@@ -294,7 +331,7 @@ function logMessage (msg) {
 */
 
 const bots = []
-spawnBotsForTrack(track.nBots)
+spawnBotsForTrack(DEFAULT_BOT_COUNT)
 
 const brain1 = require('../common/brains/brainChicane.js')
 const brain2 = require('../common/brains/brainHairpin.js')
@@ -504,9 +541,7 @@ io.on('connection', function (socket) {
     if (pendingTimeAttackTrack && username === pendingTimeAttackTrack.hostUsername) {
       const n = parseInt(text.trim(), 10)
       if (n >= 1 && n <= tracks.length) {
-        pendingTimeAttackTrack = null
-        changeTrack(tracks[n - 1])
-        io.emit('system-msg', cup.formatTimeAttackStartMessage(tracks[n - 1].name, username))
+        switchToTimeAttackTrack(username, n)
         return
       }
       socket.emit('system-msg', 'Invalid track. Reply with a number 1–4.')
@@ -519,66 +554,22 @@ io.on('connection', function (socket) {
         return
       }
 
-      const cmd = text.trim().toLowerCase()
-
-      if (cmd === '/restart') {
-        restartSession(username)
-        return
-      }
-
-      if (cmd === '/gamemode cup') {
-        if (game.sessionMode === C.SESSION_MODE.CUP) {
-          socket.emit('system-msg', 'Already in cup mode.')
-          return
-        }
-        restartCupSession(username)
-        return
-      }
-
-      if (cmd === '/gamemode timeattack') {
-        if (game.sessionMode === C.SESSION_MODE.TIMEATTACK) {
-          socket.emit('system-msg', 'Already in time attack mode.')
-          return
-        }
-        startTimeAttackSession(username)
-        return
-      }
-
-      if (cmd === '/track') {
-        if (game.sessionMode !== C.SESSION_MODE.TIMEATTACK) {
-          socket.emit('system-msg', 'Track switching is only available in time attack mode.')
-          return
-        }
-        pendingTimeAttackTrack = { hostUsername: username }
-        io.emit('system-msg', cup.formatTimeAttackTrackPrompt(tracks))
-        return
-      }
-
-      if (cmd === '/bots on') {
-        if (game.sessionMode !== C.SESSION_MODE.CUP) {
-          socket.emit('system-msg', 'Bot commands are only available in cup mode.')
-          return
-        }
-        if (!setBotsEnabled(true)) {
-          socket.emit('system-msg', 'Bots are already on.')
-          return
-        }
-        restartCupSession(username)
-        return
-      }
-
-      if (cmd === '/bots off') {
-        if (game.sessionMode !== C.SESSION_MODE.CUP) {
-          socket.emit('system-msg', 'Bot commands are only available in cup mode.')
-          return
-        }
-        if (!setBotsEnabled(false)) {
-          socket.emit('system-msg', 'Bots are already off.')
-          return
-        }
-        restartCupSession(username)
-        return
-      }
+      const handled = handleHostCommand(text, username, {
+        sessionMode: game.sessionMode,
+        tracks,
+        botsEnabled,
+        pendingTimeAttackTrack: { get value () { return pendingTimeAttackTrack }, set value (v) { pendingTimeAttackTrack = v } },
+        replyFn: (msg) => socket.emit('system-msg', msg),
+        restartSession,
+        restartCupSession,
+        restartCurrentRace,
+        startTimeAttackSession,
+        switchToTimeAttackTrack,
+        setBotsEnabled,
+        setBoostEnabled,
+        broadcastTrackPrompt: () => io.emit('system-msg', cup.formatTimeAttackTrackPrompt(tracks))
+      })
+      if (handled) return
     }
 
     io.sockets.emit('msg', username, ship.color, text.slice(0, 140))
@@ -619,8 +610,8 @@ const HARDCODED_BEST_LAPS = {
   ],
   'Miracle Park': [
     { username: 'Just in', bestLap: 8.266 },
+    { username: 'dasilvacontin', bestLap: 9.033 },
     { username: 'C4spanier', bestLap: 9.283 },
-    { username: 'dasilvacontin', bestLap: 9.4 },
     { username: 'Dincan', bestLap: 9.983 },
     { username: 'silenced', bestLap: 10.033 }
   ]
@@ -660,8 +651,9 @@ http.listen(PORT, function () {
   console.log(`listening on ${ip.address()}:${PORT}`)
 })
 
+module.exports = {}
+
 function beforeExit () {
-  console.log('beforeExit')
   if (TELEGRAM_TOKEN == null) return
   console.log('sending reboot notification via telegram')
   bot.sendMessage(TELEGRAM_CHAT_ID, 'rebooting')

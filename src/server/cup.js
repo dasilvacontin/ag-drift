@@ -3,7 +3,7 @@ const C = require('../common/constants.js')
 
 const CUP_POINTS = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 
-const CUP_HOST_COMMANDS = 'Host commands: /restart, /bots on, /bots off, /gamemode timeattack'
+const CUP_HOST_COMMANDS = 'Host commands: /restart, /bots [on|off], /boost [on|off], /gamemode timeattack.'
 const TIMEATTACK_HOST_COMMANDS = 'Host commands: /restart, /track, /gamemode cup'
 
 function hostCommandsForMode (sessionMode: string) {
@@ -189,8 +189,38 @@ class CupManager {
     return `🏆 Cup tied! ${winners.join(', ')} with ${topScore} points!`
   }
 
-  formatCupStartMessage (hostUsername: string, trackName: string, raceNum: number) {
-    return `🏆 Cup starting! Race ${raceNum}/4: ${trackName}\n${hostUsername} is the Host. ${CUP_HOST_COMMANDS}`
+  formatCupRaceMessage (
+    hostUsername: string,
+    trackName: string,
+    raceNum: number,
+    {
+      botsEnabled = true,
+      boostEnabled = false,
+      cupStarting = false
+    }: { botsEnabled?: boolean, boostEnabled?: boolean, cupStarting?: boolean } = {}
+  ) {
+    const bots = botsEnabled ? 'on' : 'off'
+    const boost = boostEnabled ? 'on' : 'off'
+    const lines = [
+      `Race ${raceNum}/4: ${trackName}`,
+      `Bots: ${bots}. Boost: ${boost}. Host: ${hostUsername}.`,
+      '-------------------',
+      CUP_HOST_COMMANDS
+    ]
+    if (cupStarting) lines.unshift('🏆 Cup starting!')
+    return lines.join('\n')
+  }
+
+  formatCupStartMessage (
+    hostUsername: string,
+    trackName: string,
+    raceNum: number,
+    options: { botsEnabled?: boolean, boostEnabled?: boolean } = {}
+  ) {
+    return this.formatCupRaceMessage(hostUsername, trackName, raceNum, {
+      ...options,
+      cupStarting: true
+    })
   }
 
   formatHostTransferMessage (hostUsername: string, sessionMode: string) {

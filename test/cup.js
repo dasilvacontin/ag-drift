@@ -171,21 +171,29 @@ describe('cup', () => {
 
     it('formats host and cup start messages with mode-specific command hints', () => {
       const cup = new CupManager(tracks)
-      expect(
-        cup.formatCupStartMessage('Alice', 'Chicane', 1),
-        'to contain',
-        '/gamemode timeattack'
+      const cupStart = cup.formatCupStartMessage('Alice', 'Chicane', 1, {
+        botsEnabled: true,
+        boostEnabled: false
+      })
+      expect(cupStart, 'to equal',
+        '🏆 Cup starting!\n' +
+        'Race 1/4: Chicane\n' +
+        'Bots: on. Boost: off. Host: Alice.\n' +
+        '-------------------\n' +
+        'Host commands: /restart, /bots [on|off], /boost [on|off], /gamemode timeattack.'
       )
-      expect(
-        cup.formatCupStartMessage('Alice', 'Chicane', 1),
-        'to contain',
-        '/restart'
+      expect(cupStart, 'not to contain', '/track')
+      const nextRace = cup.formatCupRaceMessage('Alice', 'Bowser Castle', 2, {
+        botsEnabled: true,
+        boostEnabled: false
+      })
+      expect(nextRace, 'to equal',
+        'Race 2/4: Bowser Castle\n' +
+        'Bots: on. Boost: off. Host: Alice.\n' +
+        '-------------------\n' +
+        'Host commands: /restart, /bots [on|off], /boost [on|off], /gamemode timeattack.'
       )
-      expect(
-        cup.formatCupStartMessage('Alice', 'Chicane', 1),
-        'not to contain',
-        '/track'
-      )
+      expect(nextRace, 'not to contain', 'Cup starting')
       expect(
         cup.formatHostTransferMessage('Bob', C.SESSION_MODE.CUP),
         'to contain',
@@ -205,6 +213,11 @@ describe('cup', () => {
         cup.formatTimeAttackStartMessage('Chicane', 'Alice'),
         'not to contain',
         '/bots on'
+      )
+      expect(
+        cup.formatTimeAttackStartMessage('Chicane', 'Alice'),
+        'not to contain',
+        '/boost on'
       )
     })
 
