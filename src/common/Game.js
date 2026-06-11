@@ -103,71 +103,66 @@ class Game {
   generateCellBodies () {
     this.cellBodies = []
 
-    // Merge wall cells into non-overlapping rectangles.
-    // First scan each row for horizontal runs, then extend runs
-    // downward across consecutive rows when the run is identical
-    // (same start column and width). This avoids interior seams
-    // inside solid rectangular wall blocks.
-    let activeRuns = new Map()
+    // Build wall colliders from exposed edges only. For each boundary
+    // between a wall cell and a non-wall cell (or grid edge), create a
+    // thin box along that surface. Adjacent colinear edges are merged
+    // into longer segments. This produces no interior seams at all —
+    // only actual wall surfaces have collision geometry.
+    const grid = this.map.grid
+    const rows = grid.length
+    const cols = (grid[0] || []).length
+    const E = C.CELL_EDGE
+    const HE = C.HALF_EDGE
+    const THICKNESS = 2
 
-    const flushRun = (run) => {
-      const cellBody = new p2.Body({
-        mass: 0,
-        position: [run.startJ * C.CELL_EDGE, run.startI * C.CELL_EDGE]
-      })
-      const shape = new p2.Box({
-        width: run.width * C.CELL_EDGE,
-        height: run.height * C.CELL_EDGE,
-        material: C.WALL_MTRL
-      })
-      cellBody.addShape(shape, [
-        (run.width - 1) * C.CELL_EDGE / 2,
-        (run.height - 1) * C.CELL_EDGE / 2
-      ])
-      this.cellBodies.push(cellBody)
+    const isWall = (i, j) => {
+      if (i < 0 || i >= rows || j < 0 || j >= cols) return false
+      return grid[i][j] === C.WALL
     }
 
-    this.map.grid.forEach((row, i) => {
-      const currentRuns = new Map()
+    // Horizontal edges: scan each row boundary (between row i-1 and row i)
+    for (let i = 0; i <= rows; i++) {
+      const y = i * E - HE
       let j = 0
-      while (j < row.length) {
-        if (row[j] === C.WALL) {
+      while (j < cols) {
+        const above = isWall(i - 1, j)
+        const below = isWall(i, j)
+        if (above !== below) {
           const startJ = j
-          while (j < row.length && row[j] === C.WALL) ++j
-          currentRuns.set(startJ, j - startJ)
+          while (j < cols && isWall(i - 1, j) === above && isWall(i, j) === below) ++j
+          const x1 = startJ * E - HE
+          const x2 = j * E - HE
+          // Offset inward so the outer face sits at the boundary
+          const cy = above ? (y - THICKNESS / 2) : (y + THICKNESS / 2)
+          const body = new p2.Body({ mass: 0, position: [(x1 + x2) / 2, cy] })
+          body.addShape(new p2.Box({ width: x2 - x1, height: THICKNESS, material: C.WALL_MTRL }))
+          this.cellBodies.push(body)
         } else {
           ++j
         }
       }
+    }
 
-      const continuedKeys = new Set()
-      for (const [startJ, width] of currentRuns) {
-        const active = activeRuns.get(startJ)
-        if (active && active.width === width) {
-          active.height++
-          continuedKeys.add(startJ)
+    // Vertical edges: scan each column boundary (between col j-1 and col j)
+    for (let j = 0; j <= cols; j++) {
+      const x = j * E - HE
+      let i = 0
+      while (i < rows) {
+        const left = isWall(i, j - 1)
+        const right = isWall(i, j)
+        if (left !== right) {
+          const startI = i
+          while (i < rows && isWall(i, j - 1) === left && isWall(i, j) === right) ++i
+          const y1 = startI * E - HE
+          const y2 = i * E - HE
+          const cx = left ? (x - THICKNESS / 2) : (x + THICKNESS / 2)
+          const body = new p2.Body({ mass: 0, position: [cx, (y1 + y2) / 2] })
+          body.addShape(new p2.Box({ width: THICKNESS, height: y2 - y1, material: C.WALL_MTRL }))
+          this.cellBodies.push(body)
+        } else {
+          ++i
         }
       }
-
-      for (const [, run] of activeRuns) {
-        if (!continuedKeys.has(run.startJ)) flushRun(run)
-      }
-
-      const nextActiveRuns = new Map()
-      for (const startJ of continuedKeys) {
-        nextActiveRuns.set(startJ, activeRuns.get(startJ))
-      }
-      for (const [startJ, width] of currentRuns) {
-        if (!continuedKeys.has(startJ)) {
-          nextActiveRuns.set(startJ, { startJ, startI: i, width, height: 1 })
-        }
-      }
-
-      activeRuns = nextActiveRuns
-    })
-
-    for (const [, run] of activeRuns) {
-      flushRun(run)
     }
   }
 
