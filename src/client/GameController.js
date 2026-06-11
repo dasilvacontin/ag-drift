@@ -4,7 +4,7 @@ const Game = require('../common/Game.js')
 const Turn = require('../common/Turn.js')
 const ShipController = require('./ShipController.js')
 const { maxLapsForMap } = require('../common/tracks.js')
-const { buildAiGridOverlay } = require('./aiGridOverlay.js')
+const { buildCollisionOverlay } = require('./collisionOverlay.js')
 const C = require('../common/constants.js')
 
 const colors = {}
@@ -25,7 +25,7 @@ class GameController {
   stage: PIXI.Stage
   ships: Array<ShipController>
   foreground: PIXI.Sprite
-  aiGridOverlay: ?PIXI.Container
+  collisionOverlay: ?PIXI.Container
   lastTurn: Turn
 
   constructor (game: Game, debug: boolean = false) {
@@ -94,9 +94,9 @@ class GameController {
       this.foreground = foreground
     }
 
-    if (showAiGridOverlay && game.map.aiGrid) {
-      this.aiGridOverlay = buildAiGridOverlay(game.map)
-      if (this.aiGridOverlay) this.stage.addChild(this.aiGridOverlay)
+    if (showAiGridOverlay) {
+      this.collisionOverlay = buildCollisionOverlay(game)
+      if (this.collisionOverlay) this.stage.addChild(this.collisionOverlay)
     }
   }
 
@@ -123,7 +123,7 @@ class GameController {
       }
       shipController.update(ship, maxLapsForMap(this.game.map))
     })
-    if (this.aiGridOverlay) this.stage.addChild(this.aiGridOverlay)
+    if (this.collisionOverlay) this.stage.addChild(this.collisionOverlay)
     this.foreground && this.stage.addChild(this.foreground)
     this.ships.forEach((shipController) => {
       if (shipController) this.stage.addChild(shipController.sprite)

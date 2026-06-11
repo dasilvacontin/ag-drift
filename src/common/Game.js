@@ -103,30 +103,72 @@ class Game {
   generateCellBodies () {
     this.cellBodies = []
 
+    // Merge wall cells into non-overlapping rectangles.
+    // First scan each row for horizontal runs, then extend runs
+    // downward across consecutive rows when the run is identical
+    // (same start column and width). This avoids interior seams
+    // inside solid rectangular wall blocks.
+    let activeRuns = new Map()
+
+    const flushRun = (run) => {
+      const cellBody = new p2.Body({
+        mass: 0,
+        position: [run.startJ * C.CELL_EDGE, run.startI * C.CELL_EDGE]
+      })
+      const shape = new p2.Box({
+        width: run.width * C.CELL_EDGE,
+        height: run.height * C.CELL_EDGE,
+        material: C.WALL_MTRL
+      })
+      cellBody.addShape(shape, [
+        (run.width - 1) * C.CELL_EDGE / 2,
+        (run.height - 1) * C.CELL_EDGE / 2
+      ])
+      this.cellBodies.push(cellBody)
+    }
+
     this.map.grid.forEach((row, i) => {
+      const currentRuns = new Map()
       let j = 0
       while (j < row.length) {
         if (row[j] === C.WALL) {
           const startJ = j
           while (j < row.length && row[j] === C.WALL) ++j
-          const width = j - startJ
-
-          const cellBody = new p2.Body({
-            mass: 0,
-            position: [startJ * C.CELL_EDGE, i * C.CELL_EDGE]
-          })
-          const shape = new p2.Box({
-            width: width * C.CELL_EDGE,
-            height: C.CELL_EDGE,
-            material: C.WALL_MTRL
-          })
-          cellBody.addShape(shape, [(width - 1) * C.CELL_EDGE / 2, 0])
-          this.cellBodies.push(cellBody)
+          currentRuns.set(startJ, j - startJ)
         } else {
           ++j
         }
       }
+
+      const continuedKeys = new Set()
+      for (const [startJ, width] of currentRuns) {
+        const active = activeRuns.get(startJ)
+        if (active && active.width === width) {
+          active.height++
+          continuedKeys.add(startJ)
+        }
+      }
+
+      for (const [, run] of activeRuns) {
+        if (!continuedKeys.has(run.startJ)) flushRun(run)
+      }
+
+      const nextActiveRuns = new Map()
+      for (const startJ of continuedKeys) {
+        nextActiveRuns.set(startJ, activeRuns.get(startJ))
+      }
+      for (const [startJ, width] of currentRuns) {
+        if (!continuedKeys.has(startJ)) {
+          nextActiveRuns.set(startJ, { startJ, startI: i, width, height: 1 })
+        }
+      }
+
+      activeRuns = nextActiveRuns
     })
+
+    for (const [, run] of activeRuns) {
+      flushRun(run)
+    }
   }
 
   getShipIdForSocket (socket: Socket) {
