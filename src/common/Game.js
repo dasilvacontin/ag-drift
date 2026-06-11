@@ -1,5 +1,6 @@
 // @flow
 const p2 = require('p2')
+const decomp = require('poly-decomp')
 const Socket = require('socket.io-client/lib/socket.js')
 const Turn = require('./Turn.js')
 const PlayerInput = require('./PlayerInput.js')
@@ -103,65 +104,122 @@ class Game {
   generateCellBodies () {
     this.cellBodies = []
 
-    // Build wall colliders from exposed edges only. For each boundary
-    // between a wall cell and a non-wall cell (or grid edge), create a
-    // thin box along that surface. Adjacent colinear edges are merged
-    // into longer segments. This produces no interior seams at all —
-    // only actual wall surfaces have collision geometry.
     const grid = this.map.grid
     const rows = grid.length
     const cols = (grid[0] || []).length
     const E = C.CELL_EDGE
     const HE = C.HALF_EDGE
-    const THICKNESS = 2
 
     const isWall = (i, j) => {
       if (i < 0 || i >= rows || j < 0 || j >= cols) return false
       return grid[i][j] === C.WALL
     }
 
-    // Horizontal edges: scan each row boundary (between row i-1 and row i)
-    for (let i = 0; i <= rows; i++) {
-      const y = i * E - HE
-      let j = 0
-      while (j < cols) {
-        const above = isWall(i - 1, j)
-        const below = isWall(i, j)
-        if (above !== below) {
-          const startJ = j
-          while (j < cols && isWall(i - 1, j) === above && isWall(i, j) === below) ++j
-          const x1 = startJ * E - HE
-          const x2 = j * E - HE
-          // Offset inward so the outer face sits at the boundary
-          const cy = above ? (y - THICKNESS / 2) : (y + THICKNESS / 2)
-          const body = new p2.Body({ mass: 0, position: [(x1 + x2) / 2, cy] })
-          body.addShape(new p2.Box({ width: x2 - x1, height: THICKNESS, material: C.WALL_MTRL }))
-          this.cellBodies.push(body)
-        } else {
-          ++j
-        }
+    // Trace the outline of each connected wall region as a polygon,
+    // decompose concave polygons into convex parts, and create one
+    // p2.Convex shape per part. This produces seamless collision
+    // geometry with no interior edges.
+
+    // 1) Collect all exposed edge segments (boundary between wall
+    //    and non-wall). Each segment is stored as a directed edge
+    //    so the wall interior is on the right side (CW winding
+    //    around each wall island). We will reverse to CCW later
+    //    since p2.Convex expects CCW.
+    //
+    //    Edge convention: walking along the edge, the wall is to
+    //    the right. For a top-edge of a wall cell (non-wall above),
+    //    we walk left-to-right. For a bottom-edge, right-to-left.
+    //    For a left-edge, bottom-to-top. For a right-edge, top-to-bottom.
+
+    const edgeMap = new Map() // "x,y" -> [{ from: [x,y], to: [x,y], toKey: "x,y" }]
+
+    const addEdge = (x1, y1, x2, y2) => {
+      const fromKey = `${x1},${y1}`
+      const toKey = `${x2},${y2}`
+      if (!edgeMap.has(fromKey)) edgeMap.set(fromKey, [])
+      edgeMap.get(fromKey).push({ from: [x1, y1], fromKey, to: [x2, y2], toKey, used: false })
+    }
+
+    for (let i = 0; i < rows; i++) {
+      for (let j = 0; j < cols; j++) {
+        if (!isWall(i, j)) continue
+
+        const left = j * E - HE
+        const right = (j + 1) * E - HE
+        const top = i * E - HE
+        const bottom = (i + 1) * E - HE
+
+        if (!isWall(i - 1, j)) addEdge(left, top, right, top)
+        if (!isWall(i, j + 1)) addEdge(right, top, right, bottom)
+        if (!isWall(i + 1, j)) addEdge(right, bottom, left, bottom)
+        if (!isWall(i, j - 1)) addEdge(left, bottom, left, top)
       }
     }
 
-    // Vertical edges: scan each column boundary (between col j-1 and col j)
-    for (let j = 0; j <= cols; j++) {
-      const x = j * E - HE
-      let i = 0
-      while (i < rows) {
-        const left = isWall(i, j - 1)
-        const right = isWall(i, j)
-        if (left !== right) {
-          const startI = i
-          while (i < rows && isWall(i, j - 1) === left && isWall(i, j) === right) ++i
-          const y1 = startI * E - HE
-          const y2 = i * E - HE
-          const cx = left ? (x - THICKNESS / 2) : (x + THICKNESS / 2)
-          const body = new p2.Body({ mass: 0, position: [cx, (y1 + y2) / 2] })
-          body.addShape(new p2.Box({ width: THICKNESS, height: y2 - y1, material: C.WALL_MTRL }))
-          this.cellBodies.push(body)
-        } else {
-          ++i
+    // 2) Chain directed edges into closed polygons
+    const polygons = []
+
+    for (const [, edges] of edgeMap) {
+      for (const startEdge of edges) {
+        if (startEdge.used) continue
+        startEdge.used = true
+
+        const poly = [startEdge.from]
+        let currentKey = startEdge.toKey
+        const originKey = startEdge.fromKey
+
+        while (currentKey !== originKey) {
+          const nextEdges = edgeMap.get(currentKey)
+          if (!nextEdges) break
+          const next = nextEdges.find(e => !e.used)
+          if (!next) break
+          next.used = true
+          poly.push(next.from)
+          currentKey = next.toKey
         }
+
+        if (poly.length >= 3) polygons.push(poly)
+      }
+    }
+
+    // 3) Simplify polygons by removing collinear points,
+    //    decompose into convex parts, and create bodies
+    for (const poly of polygons) {
+      // Reverse to CCW (our tracing produces CW winding)
+      poly.reverse()
+
+      const dp = new decomp.Polygon()
+      dp.vertices = poly.map(v => [v[0], v[1]])
+      dp.makeCCW()
+      dp.removeCollinearPoints(1e-6)
+
+      let convexParts
+      if (dp.vertices.length < 3) continue
+      try {
+        convexParts = dp.quickDecomp()
+      } catch (e) {
+        // Fallback: treat as single convex if decomposition fails
+        convexParts = [dp]
+      }
+
+      const body = new p2.Body({ mass: 0, position: [0, 0] })
+
+      for (const part of convexParts) {
+        if (part.vertices.length < 3) continue
+        try {
+          const shape = new p2.Convex({
+            vertices: part.vertices,
+            material: C.WALL_MTRL
+          })
+          shape.material = C.WALL_MTRL
+          body.addShape(shape)
+        } catch (e) {
+          // Skip degenerate shapes
+        }
+      }
+
+      if (body.shapes.length > 0) {
+        this.cellBodies.push(body)
       }
     }
   }
