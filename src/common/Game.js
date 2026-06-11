@@ -1,6 +1,5 @@
 // @flow
 const p2 = require('p2')
-const decomp = require('poly-decomp')
 const Socket = require('socket.io-client/lib/socket.js')
 const Turn = require('./Turn.js')
 const PlayerInput = require('./PlayerInput.js')
@@ -110,154 +109,56 @@ class Game {
     const E = C.CELL_EDGE
     const HE = C.HALF_EDGE
 
-    const isWall = (i, j) => {
-      if (i < 0 || i >= rows || j < 0 || j >= cols) return false
-      return grid[i][j] === C.WALL
+    // Merge wall cells into maximal non-overlapping rectangles.
+    // Scan each row for horizontal runs of wall cells, then extend
+    // identical runs downward across consecutive rows.
+
+    const flushRun = (run) => {
+      const width = (run.endJ - run.startJ + 1) * E
+      const height = (run.endI - run.startI + 1) * E
+      const cx = run.startJ * E + width / 2 - HE
+      const cy = run.startI * E + height / 2 - HE
+      const body = new p2.Body({ mass: 0, position: [cx, cy] })
+      const shape = new p2.Box({ width, height, material: C.WALL_MTRL })
+      body.addShape(shape)
+      this.cellBodies.push(body)
     }
 
-    // Trace the outline of each connected wall region as a polygon,
-    // decompose concave polygons into convex parts, and create one
-    // p2.Convex shape per part. This produces seamless collision
-    // geometry with no interior edges.
-
-    // 1) Collect all exposed edge segments (boundary between wall
-    //    and non-wall). Each segment is stored as a directed edge
-    //    so the wall interior is on the right side (CW winding
-    //    around each wall island). We will reverse to CCW later
-    //    since p2.Convex expects CCW.
-    //
-    //    Edge convention: walking along the edge, the wall is to
-    //    the right. For a top-edge of a wall cell (non-wall above),
-    //    we walk left-to-right. For a bottom-edge, right-to-left.
-    //    For a left-edge, bottom-to-top. For a right-edge, top-to-bottom.
-
-    const edgeMap = new Map()
-
-    const addEdge = (x1, y1, x2, y2) => {
-      const fromKey = `${x1},${y1}`
-      const toKey = `${x2},${y2}`
-      if (!edgeMap.has(fromKey)) edgeMap.set(fromKey, [])
-      edgeMap.get(fromKey).push({ from: [x1, y1], fromKey, to: [x2, y2], toKey, used: false })
-    }
+    let activeRuns = new Map()
 
     for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < cols; j++) {
-        if (!isWall(i, j)) continue
-
-        const left = j * E - HE
-        const right = (j + 1) * E - HE
-        const top = i * E - HE
-        const bottom = (i + 1) * E - HE
-
-        if (!isWall(i - 1, j)) addEdge(left, top, right, top)
-        if (!isWall(i, j + 1)) addEdge(right, top, right, bottom)
-        if (!isWall(i + 1, j)) addEdge(right, bottom, left, bottom)
-        if (!isWall(i, j - 1)) addEdge(left, bottom, left, top)
-      }
-    }
-
-    // 2) Chain directed edges into closed polygons using the
-    //    right-hand rule: at junctions with multiple outgoing
-    //    edges, pick the one that turns rightmost (most CW)
-    //    relative to the incoming direction.
-    function dirIndex (dx, dy) {
-      if (dx > 0) return 0 // RIGHT
-      if (dy > 0) return 1 // DOWN
-      if (dx < 0) return 2 // LEFT
-      return 3             // UP
-    }
-
-    // Priority for CW tracing: right turn(3) > straight(2) > left(1) > U-turn(0)
-    const TURN_SCORE = [2, 3, 0, 1] // indexed by (outDir - inDir + 4) % 4
-
-    const polygons = []
-
-    for (const [, edges] of edgeMap) {
-      for (const startEdge of edges) {
-        if (startEdge.used) continue
-        startEdge.used = true
-
-        const poly = [startEdge.from]
-        let prevEdge = startEdge
-        let currentKey = startEdge.toKey
-        const originKey = startEdge.fromKey
-
-        while (currentKey !== originKey) {
-          const nextEdges = edgeMap.get(currentKey)
-          if (!nextEdges) break
-          const candidates = nextEdges.filter(e => !e.used)
-          if (candidates.length === 0) break
-
-          const inDir = dirIndex(
-            prevEdge.to[0] - prevEdge.from[0],
-            prevEdge.to[1] - prevEdge.from[1]
-          )
-
-          let best = candidates[0]
-          let bestScore = -1
-          for (const e of candidates) {
-            const outDir = dirIndex(e.to[0] - e.from[0], e.to[1] - e.from[1])
-            const score = TURN_SCORE[((outDir - inDir) % 4 + 4) % 4]
-            if (score > bestScore) {
-              bestScore = score
-              best = e
-            }
-          }
-
-          best.used = true
-          poly.push(best.from)
-          prevEdge = best
-          currentKey = best.toKey
-        }
-
-        if (poly.length >= 3) polygons.push(poly)
-      }
-    }
-
-    // 3) Filter, simplify, decompose into convex parts, create bodies.
-    //    Outer wall boundaries have positive signed area (CW in
-    //    screen coords). Inner hole boundaries (roads) have negative
-    //    area — skip those.
-    for (const poly of polygons) {
-      let area = 0
-      for (let i = 0; i < poly.length; i++) {
-        const j = (i + 1) % poly.length
-        area += poly[i][0] * poly[j][1] - poly[j][0] * poly[i][1]
-      }
-      if (area <= 0) continue
-
-      const dp = new decomp.Polygon()
-      dp.vertices = poly.map(v => [v[0], v[1]])
-      dp.makeCCW()
-      dp.removeCollinearPoints(1e-6)
-
-      let convexParts
-      if (dp.vertices.length < 3) continue
-      try {
-        convexParts = dp.quickDecomp()
-      } catch (e) {
-        convexParts = [dp]
-      }
-
-      const body = new p2.Body({ mass: 0, position: [0, 0] })
-
-      for (const part of convexParts) {
-        if (part.vertices.length < 3) continue
-        try {
-          const shape = new p2.Convex({
-            vertices: part.vertices,
-            material: C.WALL_MTRL
-          })
-          shape.material = C.WALL_MTRL
-          body.addShape(shape)
-        } catch (e) {
-          // Skip degenerate shapes
+      const currentRuns = new Map()
+      let j = 0
+      while (j < cols) {
+        if (grid[i][j] === C.WALL) {
+          const startJ = j
+          while (j < cols && grid[i][j] === C.WALL) j++
+          const endJ = j - 1
+          currentRuns.set(`${startJ},${endJ}`, { startJ, endJ })
+        } else {
+          j++
         }
       }
 
-      if (body.shapes.length > 0) {
-        this.cellBodies.push(body)
+      const nextActiveRuns = new Map()
+      for (const [key, run] of activeRuns) {
+        if (currentRuns.has(key)) {
+          nextActiveRuns.set(key, { ...run, endI: i })
+          currentRuns.delete(key)
+        } else {
+          flushRun(run)
+        }
       }
+
+      for (const [key, { startJ, endJ }] of currentRuns) {
+        nextActiveRuns.set(key, { startJ, endJ, startI: i, endI: i })
+      }
+
+      activeRuns = nextActiveRuns
+    }
+
+    for (const [, run] of activeRuns) {
+      flushRun(run)
     }
   }
 

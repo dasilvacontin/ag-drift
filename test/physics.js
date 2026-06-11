@@ -6,7 +6,8 @@ const Ship = require('../src/common/Ship')
 const PlayerInput = require('../src/common/PlayerInput')
 const PlayerEvent = require('../src/common/PlayerEvent')
 const C = require('../src/common/constants')
-const { track4 } = require('../src/common/tracks')
+const p2 = require('p2')
+const { tracks, track4 } = require('../src/common/tracks')
 
 const { positionForShipId } = Turn
 
@@ -61,6 +62,63 @@ function tickGame (game) {
   return game.turn.ships[0]
 }
 
+function pointInShape (px, py, body, shape) {
+  const ox = body.position[0] + shape.position[0]
+  const oy = body.position[1] + shape.position[1]
+
+  if (shape instanceof p2.Box) {
+    return (
+      px >= ox - shape.width / 2 &&
+      px <= ox + shape.width / 2 &&
+      py >= oy - shape.height / 2 &&
+      py <= oy + shape.height / 2
+    )
+  }
+
+  if (shape.vertices) {
+    const verts = shape.vertices
+    const n = verts.length
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n
+      const ex = verts[j][0] - verts[i][0]
+      const ey = verts[j][1] - verts[i][1]
+      const tx = px - (ox + verts[i][0])
+      const ty = py - (oy + verts[i][1])
+      if (ex * ty - ey * tx < 0) return false
+    }
+    return true
+  }
+
+  return false
+}
+
+describe('Physics: wall collider coverage', () => {
+  tracks.forEach((track) => {
+    it(`${track.name}: non-wall cells should not overlap wall colliders`, () => {
+      const game = new Game(track, true)
+      const grid = track.grid
+
+      for (let i = 0; i < grid.length; i++) {
+        for (let j = 0; j < grid[i].length; j++) {
+          if (grid[i][j] === C.WALL) continue
+
+          const cx = j * C.CELL_EDGE
+          const cy = i * C.CELL_EDGE
+
+          for (const body of game.cellBodies) {
+            for (const shape of body.shapes) {
+              expect(
+                pointInShape(cx, cy, body, shape),
+                'to be false'
+              )
+            }
+          }
+        }
+      }
+    })
+  })
+})
+
 describe('Physics: cell collider wall bounce', () => {
   it('hitting a side wall on Bowser Castle should not bounce the ship backward', () => {
     // Ship starts facing left (angle = -π/2) on Bowser Castle.
@@ -83,9 +141,6 @@ describe('Physics: cell collider wall bounce', () => {
     // Simulate up to 80 ticks — the backward bounce occurs around tick 56
     const FRONT_WALL_X = 20
     let bouncedBackward = false
-    let bounceTick = -1
-    let bouncePos = null
-    let bounceVel = null
 
     for (let t = 4; t < 80; t++) {
       const ship = tickGame(game)
@@ -95,9 +150,6 @@ describe('Physics: cell collider wall bounce', () => {
       // Only count it if we're far from the front wall (x > 20).
       if (ship.velocity[0] > 0.1 && ship.position[0] > FRONT_WALL_X) {
         bouncedBackward = true
-        bounceTick = t
-        bouncePos = [ship.position[0], ship.position[1]]
-        bounceVel = [ship.velocity[0], ship.velocity[1]]
         break
       }
     }
