@@ -131,7 +131,7 @@ class Game {
     //    we walk left-to-right. For a bottom-edge, right-to-left.
     //    For a left-edge, bottom-to-top. For a right-edge, top-to-bottom.
 
-    const edgeMap = new Map() // "x,y" -> [{ from: [x,y], to: [x,y], toKey: "x,y" }]
+    const edgeMap = new Map()
 
     const addEdge = (x1, y1, x2, y2) => {
       const fromKey = `${x1},${y1}`
@@ -156,7 +156,20 @@ class Game {
       }
     }
 
-    // 2) Chain directed edges into closed polygons
+    // 2) Chain directed edges into closed polygons using the
+    //    right-hand rule: at junctions with multiple outgoing
+    //    edges, pick the one that turns rightmost (most CW)
+    //    relative to the incoming direction.
+    function dirIndex (dx, dy) {
+      if (dx > 0) return 0 // RIGHT
+      if (dy > 0) return 1 // DOWN
+      if (dx < 0) return 2 // LEFT
+      return 3             // UP
+    }
+
+    // Priority for CW tracing: right turn(3) > straight(2) > left(1) > U-turn(0)
+    const TURN_SCORE = [2, 3, 0, 1] // indexed by (outDir - inDir + 4) % 4
+
     const polygons = []
 
     for (const [, edges] of edgeMap) {
@@ -165,28 +178,53 @@ class Game {
         startEdge.used = true
 
         const poly = [startEdge.from]
+        let prevEdge = startEdge
         let currentKey = startEdge.toKey
         const originKey = startEdge.fromKey
 
         while (currentKey !== originKey) {
           const nextEdges = edgeMap.get(currentKey)
           if (!nextEdges) break
-          const next = nextEdges.find(e => !e.used)
-          if (!next) break
-          next.used = true
-          poly.push(next.from)
-          currentKey = next.toKey
+          const candidates = nextEdges.filter(e => !e.used)
+          if (candidates.length === 0) break
+
+          const inDir = dirIndex(
+            prevEdge.to[0] - prevEdge.from[0],
+            prevEdge.to[1] - prevEdge.from[1]
+          )
+
+          let best = candidates[0]
+          let bestScore = -1
+          for (const e of candidates) {
+            const outDir = dirIndex(e.to[0] - e.from[0], e.to[1] - e.from[1])
+            const score = TURN_SCORE[((outDir - inDir) % 4 + 4) % 4]
+            if (score > bestScore) {
+              bestScore = score
+              best = e
+            }
+          }
+
+          best.used = true
+          poly.push(best.from)
+          prevEdge = best
+          currentKey = best.toKey
         }
 
         if (poly.length >= 3) polygons.push(poly)
       }
     }
 
-    // 3) Simplify polygons by removing collinear points,
-    //    decompose into convex parts, and create bodies
+    // 3) Filter, simplify, decompose into convex parts, create bodies.
+    //    Outer wall boundaries have positive signed area (CW in
+    //    screen coords). Inner hole boundaries (roads) have negative
+    //    area — skip those.
     for (const poly of polygons) {
-      // Reverse to CCW (our tracing produces CW winding)
-      poly.reverse()
+      let area = 0
+      for (let i = 0; i < poly.length; i++) {
+        const j = (i + 1) % poly.length
+        area += poly[i][0] * poly[j][1] - poly[j][0] * poly[i][1]
+      }
+      if (area <= 0) continue
 
       const dp = new decomp.Polygon()
       dp.vertices = poly.map(v => [v[0], v[1]])
@@ -198,7 +236,6 @@ class Game {
       try {
         convexParts = dp.quickDecomp()
       } catch (e) {
-        // Fallback: treat as single convex if decomposition fails
         convexParts = [dp]
       }
 
