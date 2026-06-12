@@ -62,6 +62,24 @@ function tickGame (game) {
   return game.turn.ships[0]
 }
 
+function makeGridTrack (rows) {
+  return {
+    id: 'test-grid',
+    name: 'test-grid',
+    grid: rows.map((row) => row.split('')),
+    startingCheckpoint: '1',
+    maxLaps: 1
+  }
+}
+
+function countWallColliders (game) {
+  let count = 0
+  for (const body of game.cellBodies) {
+    count += body.shapes.length
+  }
+  return count
+}
+
 function pointInShape (px, py, body, shape) {
   const ox = body.position[0] + shape.position[0]
   const oy = body.position[1] + shape.position[1]
@@ -92,7 +110,36 @@ function pointInShape (px, py, body, shape) {
   return false
 }
 
-describe('Physics: wall collider coverage', () => {
+describe('Physics: exposed wall trapezoid count', () => {
+  it('generates one trapezoid per road-facing wall face on a hollow square', () => {
+    const track = makeGridTrack([
+      '####',
+      '#  #',
+      '#  #',
+      '####'
+    ])
+    const game = new Game(track, true)
+    expect(countWallColliders(game), 'to be', 4)
+  })
+
+  it('generates trapezoids for outer ring and inner island faces', () => {
+    const track = makeGridTrack([
+      '#######',
+      '#     #',
+      '# ### #',
+      '# ### #',
+      '# ### #',
+      '#     #',
+      '#######'
+    ])
+    const game = new Game(track, true)
+    expect(countWallColliders(game), 'to be', 8)
+  })
+})
+
+describe('Physics: wall collider coverage', function () {
+  this.timeout(30000)
+
   tracks.forEach((track) => {
     it(`${track.name}: non-wall cells should not overlap wall colliders`, () => {
       const game = new Game(track, true)

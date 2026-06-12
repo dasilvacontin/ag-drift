@@ -5,6 +5,10 @@ const Turn = require('./Turn.js')
 const PlayerInput = require('./PlayerInput.js')
 const Ship = require('./Ship.js')
 const C = require('./constants.js')
+const {
+  DEFAULT_COLLIDER_APPROACH,
+  generateCellBodies: buildCellBodies
+} = require('./cellColliders.js')
 
 const { positionForShipId } = Turn
 const { maxLapsForMap } = require('./tracks.js')
@@ -74,6 +78,7 @@ class Game {
   debugSockets: Array<?Socket>
   socketToShip: Object
   cellBodies: Array<p2.Body>
+  colliderApproach: string
 
   lava: number
   lastTick: number
@@ -81,9 +86,14 @@ class Game {
   pendingPlayerEventBroadcasts: Array<{ shipId: number, events: Array<GameEvent>, turnIndex: number }>
   pendingServerEventBroadcasts: Array<{ event: GameEvent, turnIndex: number }>
 
-  constructor (map : Track, isServer: boolean = false) {
+  constructor (
+    map : Track,
+    isServer: boolean = false,
+    options: { colliderApproach?: string } = {}
+  ) {
     this.map = map
     this.isServer = isServer
+    this.colliderApproach = options.colliderApproach || DEFAULT_COLLIDER_APPROACH
     this.sessionMode = C.SESSION_MODE.IDLE
 
     this.turn = new Turn([], [], [])
@@ -101,65 +111,7 @@ class Game {
   }
 
   generateCellBodies () {
-    this.cellBodies = []
-
-    const grid = this.map.grid
-    const rows = grid.length
-    const cols = (grid[0] || []).length
-    const E = C.CELL_EDGE
-    const HE = C.HALF_EDGE
-
-    // Merge wall cells into maximal non-overlapping rectangles.
-    // Scan each row for horizontal runs of wall cells, then extend
-    // identical runs downward across consecutive rows.
-
-    const flushRun = (run) => {
-      const width = (run.endJ - run.startJ + 1) * E
-      const height = (run.endI - run.startI + 1) * E
-      const cx = run.startJ * E + width / 2 - HE
-      const cy = run.startI * E + height / 2 - HE
-      const body = new p2.Body({ mass: 0, position: [cx, cy] })
-      const shape = new p2.Box({ width, height, material: C.WALL_MTRL })
-      body.addShape(shape)
-      this.cellBodies.push(body)
-    }
-
-    let activeRuns = new Map()
-
-    for (let i = 0; i < rows; i++) {
-      const currentRuns = new Map()
-      let j = 0
-      while (j < cols) {
-        if (grid[i][j] === C.WALL) {
-          const startJ = j
-          while (j < cols && grid[i][j] === C.WALL) j++
-          const endJ = j - 1
-          currentRuns.set(`${startJ},${endJ}`, { startJ, endJ })
-        } else {
-          j++
-        }
-      }
-
-      const nextActiveRuns = new Map()
-      for (const [key, run] of activeRuns) {
-        if (currentRuns.has(key)) {
-          nextActiveRuns.set(key, { ...run, endI: i })
-          currentRuns.delete(key)
-        } else {
-          flushRun(run)
-        }
-      }
-
-      for (const [key, { startJ, endJ }] of currentRuns) {
-        nextActiveRuns.set(key, { startJ, endJ, startI: i, endI: i })
-      }
-
-      activeRuns = nextActiveRuns
-    }
-
-    for (const [, run] of activeRuns) {
-      flushRun(run)
-    }
+    this.cellBodies = buildCellBodies(this.map.grid, this.colliderApproach)
   }
 
   getShipIdForSocket (socket: Socket) {
