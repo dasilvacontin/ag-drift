@@ -137,7 +137,7 @@ function handleHostCommand (text: string, username: string, ctx: Object) {
         switchToTimeAttackTrack(username, n)
         return true
       }
-      replyFn('Invalid track. Use a number 1–4.')
+      replyFn(`Invalid track. Use a number 1–${tracks.length}.`)
       return true
     }
     pendingTimeAttackTrack.value = { hostUsername: username }

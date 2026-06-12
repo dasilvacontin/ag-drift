@@ -345,6 +345,55 @@ const track5 = {
   ].map((row) => row.split(''))
 }
 
-const tracks = [track1, track2, track3, track4, track5]
+// Minimal hollow rectangle — same topology as the strict wall-bounce tests.
+// Use /track 6 (time attack) to inspect trapezoid colliders (overlay is always on).
+const track6 = {
+  id: 'ColliderDebug',
+  name: 'Collider Debug',
+  maxLaps: 99,
+  background: '',
+  foreground: '',
+  bgmusic: 'sounds/POL-night-in-motion-long.wav',
+  skyboxColor: 0x222222,
+  wallColor: 0x000000,
+  boostDisabled: true,
+  showColliderOverlay: true,
+  messages: [],
+  startingCheckpoint: '9',
+  zoom: 14,
+  aiType: 'grid',
+  grid: [
+    '##########',
+    '#91      #',
+    '#        #',
+    '#        #',
+    '#        #',
+    '#        #',
+    '##########'
+  ].map((row) => row.split('')),
+  aiGrid: [
+    '##########',
+    '#rrdddddd#',
+    '#rrdddddd#',
+    '#rrdddddd#',
+    '#rrdddddd#',
+    '#rrdddddd#',
+    '##########'
+  ].map((row) => row.split(''))
+}
 
-module.exports = { tracks, track1, track2, track3, track4, track5, DEFAULT_BOT_COUNT, maxLapsForMap }
+const rotationTracks = [track1, track2, track3, track4]
+const tracks = [...rotationTracks, track5, track6]
+
+module.exports = {
+  tracks,
+  rotationTracks,
+  track1,
+  track2,
+  track3,
+  track4,
+  track5,
+  track6,
+  DEFAULT_BOT_COUNT,
+  maxLapsForMap
+}

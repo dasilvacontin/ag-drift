@@ -35,7 +35,7 @@ const Game = require('../common/Game.js')
 const C = require('../common/constants.js')
 const { CupManager, computePlacements, shouldAdvanceCupRace } = require('./cup.js')
 const { handleHostCommand } = require('./commands.js')
-const { tracks, DEFAULT_BOT_COUNT } = require('../common/tracks.js')
+const { tracks, rotationTracks, DEFAULT_BOT_COUNT } = require('../common/tracks.js')
 const { aiGridCellAtPosition } = require('../common/aiGrid.js')
 
 app.get('*', function (req, res, next) {
@@ -61,7 +61,7 @@ app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'))
 })
 
-const cup = new CupManager(tracks)
+const cup = new CupManager(rotationTracks)
 const FORCED_TRACK_CHOICE = process.env.FORCED_TRACK_CHOICE
 const defaultTrackIndex = FORCED_TRACK_CHOICE != null
   ? Number(FORCED_TRACK_CHOICE)
@@ -230,7 +230,7 @@ function restartCupSession (hostUsername) {
   }
   cupBoostEnabled = false
   game.sessionMode = C.SESSION_MODE.CUP
-  changeTrack(tracks[cup.currentTrackIndex()])
+  changeTrack(rotationTracks[cup.currentTrackIndex()])
   emitCupStartMessage()
 }
 
@@ -246,8 +246,8 @@ function startTimeAttackSession (hostUsername) {
 
 function switchToTimeAttackTrack (hostUsername, trackNumber) {
   pendingTimeAttackTrack = null
-  changeTrack(tracks[trackNumber - 1])
-  io.emit('system-msg', cup.formatTimeAttackStartMessage(tracks[trackNumber - 1].name, hostUsername))
+  changeTrack(rotationTracks[trackNumber - 1])
+  io.emit('system-msg', cup.formatTimeAttackStartMessage(rotationTracks[trackNumber - 1].name, hostUsername))
 }
 
 function restartSession (hostUsername) {
@@ -302,7 +302,7 @@ function tickAndSchedule () {
     if (!lastCompletedRaceWasFinal) {
       const gridOrder = computePlacements(game.turn.ships).map(p => p.username)
       cup.advanceRace()
-      changeTrack(tracks[cup.currentTrackIndex()], { gridOrder })
+      changeTrack(rotationTracks[cup.currentTrackIndex()], { gridOrder })
       io.emit('system-msg', cup.formatCupRaceMessage(
         cup.hostUsername,
         track.name,
@@ -310,7 +310,7 @@ function tickAndSchedule () {
         { botsEnabled, boostEnabled: cupBoostEnabled }
       ))
     } else {
-      changeTrack(tracks[cup.currentTrackIndex()])
+      changeTrack(rotationTracks[cup.currentTrackIndex()])
       emitCupStartMessage()
     }
     lastCompletedRaceWasFinal = false
@@ -540,11 +540,11 @@ io.on('connection', function (socket) {
 
     if (pendingTimeAttackTrack && username === pendingTimeAttackTrack.hostUsername) {
       const n = parseInt(text.trim(), 10)
-      if (n >= 1 && n <= tracks.length) {
+      if (n >= 1 && n <= rotationTracks.length) {
         switchToTimeAttackTrack(username, n)
         return
       }
-      socket.emit('system-msg', 'Invalid track. Reply with a number 1–4.')
+      socket.emit('system-msg', `Invalid track. Reply with a number 1–${rotationTracks.length}.`)
       return
     }
 
@@ -556,7 +556,7 @@ io.on('connection', function (socket) {
 
       const handled = handleHostCommand(text, username, {
         sessionMode: game.sessionMode,
-        tracks,
+        tracks: rotationTracks,
         botsEnabled,
         pendingTimeAttackTrack: { get value () { return pendingTimeAttackTrack }, set value (v) { pendingTimeAttackTrack = v } },
         replyFn: (msg) => socket.emit('system-msg', msg),
@@ -567,7 +567,7 @@ io.on('connection', function (socket) {
         switchToTimeAttackTrack,
         setBotsEnabled,
         setBoostEnabled,
-        broadcastTrackPrompt: () => io.emit('system-msg', cup.formatTimeAttackTrackPrompt(tracks))
+        broadcastTrackPrompt: () => io.emit('system-msg', cup.formatTimeAttackTrackPrompt(rotationTracks))
       })
       if (handled) return
     }

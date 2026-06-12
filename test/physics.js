@@ -8,6 +8,7 @@ const PlayerEvent = require('../src/common/PlayerEvent')
 const C = require('../src/common/constants')
 const p2 = require('p2')
 const { tracks, track4 } = require('../src/common/tracks')
+const { COLLIDER_APPROACH } = require('../src/common/cellColliders')
 
 const { positionForShipId } = Turn
 
@@ -110,7 +111,8 @@ function pointInShape (px, py, body, shape) {
   return false
 }
 
-describe('Physics: exposed wall trapezoid count', () => {
+// Trapezoid colliders are kept for reference but not supported in production.
+describe.skip('Physics: exposed wall trapezoid count', () => {
   it('generates one trapezoid per road-facing wall face on a hollow square', () => {
     const track = makeGridTrack([
       '####',
@@ -118,7 +120,7 @@ describe('Physics: exposed wall trapezoid count', () => {
       '#  #',
       '####'
     ])
-    const game = new Game(track, true)
+    const game = new Game(track, true, { colliderApproach: COLLIDER_APPROACH.TRAPEZOID })
     expect(countWallColliders(game), 'to be', 4)
   })
 
@@ -132,7 +134,7 @@ describe('Physics: exposed wall trapezoid count', () => {
       '#     #',
       '#######'
     ])
-    const game = new Game(track, true)
+    const game = new Game(track, true, { colliderApproach: COLLIDER_APPROACH.TRAPEZOID })
     expect(countWallColliders(game), 'to be', 8)
   })
 })

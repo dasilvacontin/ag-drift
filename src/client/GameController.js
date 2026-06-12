@@ -37,8 +37,8 @@ class GameController {
     // add sprites for map
     if (debug) return
 
-    const showAiGridOverlay = typeof localStorage !== 'undefined' &&
-      Boolean(localStorage.getItem('DEBUG'))
+    const showColliderOverlay = game.map.showColliderOverlay ||
+      (typeof localStorage !== 'undefined' && Boolean(localStorage.getItem('DEBUG')))
 
     if (game.map.background) {
       const background = new PIXI.Sprite.fromImage(game.map.background)
@@ -94,7 +94,7 @@ class GameController {
       this.foreground = foreground
     }
 
-    if (showAiGridOverlay) {
+    if (showColliderOverlay) {
       this.collisionOverlay = buildCollisionOverlay(game)
       if (this.collisionOverlay) this.stage.addChild(this.collisionOverlay)
     }

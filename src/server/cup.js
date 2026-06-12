@@ -22,8 +22,12 @@ function shuffleArray (arr) {
   return a
 }
 
-function shuffleTracksOrder (avoidFirstTrackIndex: ?number) {
-  const all = [0, 1, 2, 3]
+function trackIndices (count: number) {
+  return Array.from({ length: count }, (_, i) => i)
+}
+
+function shuffleTracksOrder (avoidFirstTrackIndex: ?number, trackCount: number = 4) {
+  const all = trackIndices(trackCount)
   if (avoidFirstTrackIndex == null) {
     return shuffleArray(all)
   }
@@ -78,7 +82,7 @@ class CupManager {
 
   constructor (tracks: Array<Object>) {
     this.tracks = tracks
-    this.trackOrder = [0, 1, 2, 3]
+    this.trackOrder = trackIndices(tracks.length)
     this.raceIndex = 0
     this.scores = new Map()
     this.active = false
@@ -87,7 +91,7 @@ class CupManager {
   }
 
   shuffleTracks (avoidFirstTrackIndex: ?number = null) {
-    this.trackOrder = shuffleTracksOrder(avoidFirstTrackIndex)
+    this.trackOrder = shuffleTracksOrder(avoidFirstTrackIndex, this.tracks.length)
   }
 
   start (hostUsername: string) {

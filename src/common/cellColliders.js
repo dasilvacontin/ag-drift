@@ -7,7 +7,7 @@ const COLLIDER_APPROACH = {
   MERGED_RECTANGLES: 'merged-rectangles'
 }
 
-const DEFAULT_COLLIDER_APPROACH = COLLIDER_APPROACH.TRAPEZOID
+const DEFAULT_COLLIDER_APPROACH = COLLIDER_APPROACH.MERGED_RECTANGLES
 
 function generateMergedRectangleBodies (grid) {
   const cellBodies = []
@@ -86,16 +86,11 @@ function generateTrapezoidBodies (grid) {
 
   const body = new p2.Body({ mass: 0, position: [0, 0] })
 
-  const addConvex = (vertices) => {
+  // Each template is CCW and oriented so p2 blocks approach from the road side.
+  const addConvexCCW = (vertices) => {
     if (vertices.length < 3) return
-    let area = 0
-    for (let vi = 0; vi < vertices.length; vi++) {
-      const vj = (vi + 1) % vertices.length
-      area += vertices[vi][0] * vertices[vj][1] - vertices[vj][0] * vertices[vi][1]
-    }
-    const verts = area < 0 ? vertices.slice().reverse() : vertices
     try {
-      const shape = new p2.Convex({ vertices: verts, material: C.WALL_MTRL })
+      const shape = new p2.Convex({ vertices, material: C.WALL_MTRL })
       shape.material = C.WALL_MTRL
       body.addShape(shape)
     } catch (e) {
@@ -118,11 +113,11 @@ function generateTrapezoidBodies (grid) {
       ) endI++
       const xFace = j * E - HE
       const xInner = j * E
-      addConvex([
+      addConvexCCW([
         [xFace, i * E - HE],
-        [xFace, endI * E + HE],
+        [xInner, i * E],
         [xInner, endI * E],
-        [xInner, i * E]
+        [xFace, endI * E + HE]
       ])
       i = endI + 1
     }
@@ -143,11 +138,11 @@ function generateTrapezoidBodies (grid) {
       ) endJ++
       const yFace = i * E - HE
       const yInner = i * E
-      addConvex([
+      addConvexCCW([
         [j * E - HE, yFace],
-        [endJ * E + HE, yFace],
+        [j * E, yInner],
         [endJ * E, yInner],
-        [j * E, yInner]
+        [endJ * E + HE, yFace]
       ])
       j = endJ + 1
     }
@@ -168,11 +163,11 @@ function generateTrapezoidBodies (grid) {
       ) endI++
       const xFace = j * E + HE
       const xInner = j * E
-      addConvex([
-        [xFace, endI * E + HE],
-        [xFace, i * E - HE],
+      addConvexCCW([
+        [xInner, endI * E],
         [xInner, i * E],
-        [xInner, endI * E]
+        [xFace, i * E - HE],
+        [xFace, endI * E + HE]
       ])
       i = endI + 1
     }
@@ -193,11 +188,11 @@ function generateTrapezoidBodies (grid) {
       ) endJ++
       const yFace = i * E + HE
       const yInner = i * E
-      addConvex([
-        [endJ * E + HE, yFace],
-        [j * E - HE, yFace],
-        [j * E, yInner],
-        [endJ * E, yInner]
+      addConvexCCW([
+        [endJ * E, yFace],
+        [j * E, yFace],
+        [j * E - HE, yInner],
+        [endJ * E + HE, yInner]
       ])
       j = endJ + 1
     }

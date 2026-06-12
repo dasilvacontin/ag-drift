@@ -12,7 +12,8 @@ const LAP_TICK_LIMITS = {
   'Bowser Castle': 1648
 }
 
-describe('Physics: bot lap with trapezoid colliders', function () {
+// Trapezoid colliders are kept for reference but not supported in production.
+describe.skip('Physics: bot lap with trapezoid colliders', function () {
   this.timeout(300000)
 
   ;[

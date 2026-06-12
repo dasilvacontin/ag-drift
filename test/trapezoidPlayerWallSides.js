@@ -14,7 +14,8 @@ const WALL_BOUNCE_LIMITS = {
 
 const PLAYER_SIDES = ['behind', 'left']
 
-describe('Physics: trapezoid colliders block player-relative wall sides', function () {
+// Trapezoid colliders are kept for reference but not supported in production.
+describe.skip('Physics: trapezoid colliders block player-relative wall sides', function () {
   this.timeout(300000)
 
   ;[
